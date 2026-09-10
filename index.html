@@ -1,0 +1,2227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genogram Keluarga</title>
+<style>
+:root{
+  --tinta:#14181d; --kertas:#ffffff; --dasar:#e7ebee; --panel:#f6f8f9;
+  --garis:#c2cad2; --redup:#5b6672; --aksen:#0b5d63; --bahaya:#8f2a24;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --serif:Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--dasar);color:var(--tinta);font:15px/1.55 var(--sans)}
+button,input,select{font:inherit;color:inherit}
+
+header.kepala{
+  background:var(--kertas);border-bottom:1px solid var(--garis);
+  padding:14px 22px;display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap
+}
+.kepala h1{margin:0;font:600 21px/1.2 var(--serif);letter-spacing:.2px}
+.kepala .rujuk{margin:2px 0 0;font-size:12.5px;color:var(--redup);max-width:56ch}
+.kepala .rujuk b{font-weight:600;color:var(--tinta)}
+.alat{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.tbl{
+  border:1px solid var(--garis);background:var(--kertas);color:var(--tinta);
+  padding:7px 13px;border-radius:3px;cursor:pointer;font-size:13.5px;
+  font-family:var(--mono);letter-spacing:-.2px
+}
+.tbl:hover{border-color:var(--aksen);color:var(--aksen)}
+.tbl:focus-visible{outline:2px solid var(--aksen);outline-offset:2px}
+.tbl.utama{border-color:var(--aksen);color:var(--aksen)}
+.tbl.bahaya{border-color:#d9b3b0;color:var(--bahaya)}
+.tbl.bahaya:hover{border-color:var(--bahaya)}
+label.berkas{display:inline-block}
+label.berkas input{display:none}
+
+main{display:grid;grid-template-columns:352px 1fr;height:calc(100% - 74px)}
+@media (max-width:900px){main{grid-template-columns:1fr;height:auto}}
+
+#sisi{background:var(--panel);border-right:1px solid var(--garis);overflow:auto;padding:16px}
+.kotak{background:var(--kertas);border:1px solid var(--garis);border-radius:4px;padding:14px;margin-bottom:14px}
+.kotak h2{margin:0 0 10px;font:600 12px/1.2 var(--mono);letter-spacing:.9px;text-transform:uppercase;color:var(--redup)}
+.kotak.sorot{border-left:3px solid var(--aksen)}
+.kotak.catatan p{margin:0 0 8px;font-size:12.5px;color:var(--redup)}
+.kotak.catatan p.kecil{font-size:11.5px}
+.baris{margin-bottom:9px}
+.label{display:block;font-size:12px;color:var(--redup);margin-bottom:3px}
+.baris input[type=text],.baris select,.daftarOrang{
+  width:100%;padding:6px 8px;border:1px solid var(--garis);border-radius:3px;background:var(--kertas)
+}
+.daftarOrang{margin-bottom:9px}
+.duaKolom{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.duaKolom input,.duaKolom select{width:100%;padding:6px 8px;border:1px solid var(--garis);border-radius:3px}
+.centang{display:block;font-size:13.5px;margin:6px 0}
+.pilKondisi{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-family:var(--mono);font-size:12px;border:1px solid var(--garis);border-radius:3px;padding:3px 6px;cursor:pointer}
+.chip input{margin-right:4px;vertical-align:-1px}
+.aksi{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.sunyi{font-size:13px;color:var(--redup);margin:0 0 10px}
+#periksa ul{margin:0;padding-left:17px}
+#periksa li{font-size:12.5px;margin-bottom:5px}
+#periksa li.galat{color:var(--bahaya)}
+#periksa li.ingat{color:var(--redup)}
+#periksa p.lolos{margin:0;font-size:12.5px;color:var(--aksen)}
+.langkah{margin:8px 0 0;padding:0;list-style:none;counter-reset:langkah;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:3px 20px;max-width:880px}
+.langkah li{counter-increment:langkah;position:relative;padding-left:19px;font-size:12.5px;line-height:1.45;color:var(--redup)}
+.langkah li::before{content:counter(langkah);position:absolute;left:0;top:0;
+  font:600 11px/1.65 var(--mono);color:var(--aksen)}
+.langkah b{font-weight:600;color:var(--tinta)}
+.panduan ol{margin:0;padding-left:18px}
+.panduan li{font-size:12.5px;margin-bottom:5px;color:var(--redup)}
+.panduan p.kecil{font-size:11.5px;color:var(--redup);margin:8px 0 0}
+
+#kanvas{overflow:auto;padding:24px;background:var(--dasar)}
+#bagan{background:var(--kertas);border:1px solid var(--garis);display:inline-block;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+#bagan svg{display:block}
+.sasaran{cursor:pointer}
+.sasaran:hover{fill:rgba(11,93,99,.09)}
+.sasaran.aktif{fill:rgba(11,93,99,.14);stroke:#0b5d63;stroke-width:1.2;stroke-dasharray:3 3}
+.sasaran:focus-visible{outline:none;stroke:#0b5d63;stroke-width:2}
+
+#kabar{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(14px);
+  background:var(--tinta);color:#fff;padding:9px 16px;border-radius:3px;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:50
+}
+#kabar.tampil{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){#kabar{transition:none}}
+
+@media print{
+  .kepala,#sisi,#kabar{display:none!important}
+  main{display:block;height:auto}
+  #kanvas{padding:0;overflow:visible;background:#fff}
+  #bagan{border:0;box-shadow:none}
+  .sasaran{display:none}
+  body{background:#fff}
+  @page{size:A4 landscape;margin:10mm}
+}
+</style>
+</head>
+<body>
+<header class="kepala">
+  <div>
+    <h1>Genogram Keluarga</h1>
+    <p class="rujuk">Lambang mengikuti <b>Genogram dalam Praktik Kedokteran Keluarga</b>. Bagan sengaja monokrom karena warna bukan bagian standar.</p>
+    <ol class="langkah">
+      <li>Isi judul, penyusun, dan tanggal pada panel kiri.</li>
+      <li>Tekan <b>Tambah orang pertama</b>, biasanya pasien yang sedang dihadapi, lalu centang <b>Individu indeks</b>.</li>
+      <li>Bangun keluarga dengan <b>+ Orang tua</b> ke atas, <b>+ Pasangan</b> ke samping, <b>+ Anak</b> ke bawah, sampai tiga generasi.</li>
+      <li>Klik simbol untuk mengisi nama, jenis kelamin, usia, status hidup, kondisi, dan tanda tinggal serumah.</li>
+      <li>Klik garis pasangan untuk mengatur menikah atau kohabitasi, berpisah atau bercerai, tahun, dan perkawinan sedarah.</li>
+      <li>Isi usia anak supaya urutan tertua di kiri tersusun sendiri; legenda ikut menyesuaikan isi bagan.</li>
+      <li>Bereskan temuan pada <b>Pemeriksaan mutu</b>, lalu simpan PNG, JPEG, SVG, cetak PDF, atau simpan data untuk dibuka lagi dan dipakai di Family Map.</li>
+    </ol>
+  </div>
+  <div class="alat">
+    <button class="tbl" id="tblContoh" type="button">Muat contoh buku</button>
+    <button class="tbl" id="tblPNG" type="button">Simpan PNG</button>
+    <button class="tbl" id="tblJPEG" type="button">Simpan JPEG</button>
+    <button class="tbl" id="tblSVG" type="button">Simpan SVG</button>
+    <button class="tbl" id="tblPDF" type="button">Cetak / PDF</button>
+    <button class="tbl" id="tblJSON" type="button">Simpan data</button>
+    <label class="tbl berkas">Buka data<input type="file" id="inpJSON" accept="application/json,.json"></label>
+    <button class="tbl bahaya" id="tblReset" type="button">Kosongkan</button>
+  </div>
+</header>
+<main>
+  <aside id="sisi">
+    <div id="panel"></div>
+    <section class="kotak">
+      <h2>Pemeriksaan mutu</h2>
+      <div id="periksa"></div>
+    </section>
+    <section class="kotak panduan">
+      <h2>Cara membaca bagan</h2>
+      <ol>
+        <li>Kenali jumlah generasi dan susunannya dari atas ke bawah.</li>
+        <li>Telusuri hubungan pasangan tiap generasi: menikah, berpisah, atau bercerai, terbaca dari coretan pada garis relasi.</li>
+        <li>Baca status hidup atau meninggal dari ada tidaknya tanda silang.</li>
+        <li>Perhatikan penanda penyakit tiap individu, lalu cocokkan dengan legenda.</li>
+        <li>Kenali individu indeks dari tepi ganda dan batas rumah tangga dari garis titik-titik.</li>
+      </ol>
+      <p class="kecil">Pola penyakit yang menurun mengarahkan sasaran skrining pada anggota yang berisiko.</p>
+    </section>
+  </aside>
+  <section id="kanvas"><div id="bagan"></div></section>
+</main>
+<div id="kabar" role="status" aria-live="polite"></div>
+<script>
+/* ============================================================================
+   INTI GENOGRAM  — logika murni, tanpa DOM.
+   Acuan notasi: "Genogram dalam Praktik Kedokteran Keluarga".
+   Lapisan hubungan emosional SENGAJA TIDAK dipakai di sini; lapisan itu
+   ditangani aplikasi terpisah "Family Map".
+   ========================================================================== */
+(function (akar) {
+  'use strict';
+
+  /* ---------- Konstanta tata letak ---------- */
+  var S = 54;                 // sisi simbol (kotak/lingkaran/wajik)
+  var SETENGAH = S / 2;
+  var BARIS = 168;            // jarak antar-generasi (baris ke baris)
+  var SELA_PASANGAN = 40;     // celah antar simbol dalam satu pasangan
+  var SELA_LAIN = 60;         // celah antar simbol yang bukan pasangan
+  var TEPI = 56;              // margin kiri kanvas (di luar talang generasi)
+  var TALANG = 46;            // lebar talang angka Romawi
+  var ATAS = 88;              // margin atas (ruang untuk kode kondisi di atas simbol)
+  var TURUN_BUS = 60;         // jarak bus saudara di bawah tepi bawah simbol
+  var JALUR_BUS = 22;         // jarak antar-jalur bila bus saudara harus bertingkat
+  var SELA_JALUR = 10;        // jarak mendatar minimum agar dua bus boleh sejalur
+
+  var ROMAWI = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
+  /* Tabel 2 buku: contoh kode anotasi kondisi di layanan primer (ilustratif) */
+  var KODE_KONDISI = [
+    { kode: 'HT', arti: 'Hipertensi' },
+    { kode: 'DM', arti: 'Diabetes melitus' },
+    { kode: 'CA', arti: 'Kanker, sebutkan lokasinya (mis. CA mammae)' },
+    { kode: 'PJK', arti: 'Penyakit jantung koroner' },
+    { kode: 'Stroke', arti: 'Penyakit serebrovaskular' },
+    { kode: 'TB', arti: 'Tuberkulosis' },
+    { kode: 'PGK', arti: 'Penyakit ginjal kronik' },
+    { kode: 'Asma', arti: 'Asma' },
+    { kode: 'Depresi', arti: 'Gangguan depresi' }
+  ];
+
+  /* penanda kehamilan dan kehilangan kehamilan (nomenklatur pedigree) */
+  var KODE_KEHAMILAN = [
+    { kode: 'P', arti: 'Kehamilan berjalan, cantumkan usia gestasi' },
+    { kode: 'SAB', arti: 'Keguguran spontan (spontaneous abortion)' },
+    { kode: 'TOP', arti: 'Terminasi kehamilan (termination of pregnancy)' },
+    { kode: 'ECT', arti: 'Kehamilan ektopik' },
+    { kode: 'SB', arti: 'Lahir mati (stillbirth)' }
+  ];
+
+  /* ---------- Utilitas ---------- */
+  var urutan = 0;
+  function idBaru(awalan) {
+    urutan += 1;
+    return awalan + '_' + Date.now().toString(36) + '_' + urutan.toString(36);
+  }
+  function hariIni(d) {
+    var t = d || new Date();
+    var b = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli',
+      'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return t.getDate() + ' ' + b[t.getMonth()] + ' ' + t.getFullYear();
+  }
+  function salin(o) { return JSON.parse(JSON.stringify(o)); }
+  function batasKata(teks, maks) {
+    var k = String(teks == null ? '' : teks).split(/\s+/).filter(Boolean);
+    return k.length <= maks ? String(teks == null ? '' : teks) : k.slice(0, maks).join(' ');
+  }
+  function amanXML(t) {
+    return String(t == null ? '' : t)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function potong(teks, maks) {
+    var t = String(teks == null ? '' : teks);
+    return t.length <= maks ? t : t.slice(0, maks - 1) + '\u2026';
+  }
+
+  /* ---------- Model ---------- */
+  function orangBaru(data) {
+    var o = {
+      id: idBaru('o'), nama: '', jk: 'U', umur: '', thnLahir: '', thnMeninggal: '',
+      hidup: true, indeks: false, serumah: false,
+      kondisi: [], pembawaSifat: false,
+      relOrtu: 'kandung',       // kandung | adopsi | asuh
+      arsirZat: false, arsirBerat: false,   // arsiran separuh simbol
+      kembarGrup: '', zigositas: '',  // MZ | DZ | ?
+      kehamilan: '',            // '' | P | SAB | TOP | ECT | SB
+      catatan: ''
+    };
+    if (data) { for (var k in data) { if (Object.prototype.hasOwnProperty.call(o, k)) o[k] = data[k]; } }
+    return o;
+  }
+  function unionBaru(a, b) {
+    return {
+      id: idBaru('u'), a: a || null, b: b || null,
+      jenis: 'menikah',        // menikah | kohabitasi
+      status: 'utuh',          // utuh | pisah | cerai
+      tahun: '', sedarah: false, // konsanguinitas
+      anak: []
+    };
+  }
+  function dokBaru(tanggal) {
+    return {
+      versi: 2,
+      meta: {
+        judul: 'Genogram Keluarga',
+        penyusun: '',
+        tanggal: tanggal || hariIni(),
+        mode: 'genogram',       // genogram (McGoldrick) | pedigree (NSGC) — Tabel 1
+        urutAnakOtomatis: true,
+        artiKode: {},           // arti untuk kode di luar daftar bawaan
+        letakTahun: 'bawah',    // bawah | samping
+        catatan: ''
+      },
+      orang: [], union: []
+    };
+  }
+
+  function artiKodeDari(dok, kode) {
+    var t = dok.meta && dok.meta.artiKode ? dok.meta.artiKode[kode] : '';
+    return t ? String(t).trim() : '';
+  }
+  function kodeBawaan(kode) {
+    for (var i = 0; i < KODE_KONDISI.length; i++) {
+      if (KODE_KONDISI[i].kode.toLowerCase() === String(kode).toLowerCase()) return KODE_KONDISI[i];
+    }
+    return null;
+  }
+  function kodeTambahan(dok) {
+    var pakai = {};
+    dok.orang.forEach(function (o) {
+      (o.kondisi || []).forEach(function (k) { if (!kodeBawaan(k)) pakai[k] = true; });
+    });
+    return Object.keys(pakai).sort();
+  }
+
+  function cariOrang(dok, id) {
+    for (var i = 0; i < dok.orang.length; i++) if (dok.orang[i].id === id) return dok.orang[i];
+    return null;
+  }
+  function cariUnion(dok, id) {
+    for (var i = 0; i < dok.union.length; i++) if (dok.union[i].id === id) return dok.union[i];
+    return null;
+  }
+  function unionOrtu(dok, orangId) {
+    for (var i = 0; i < dok.union.length; i++) {
+      if (dok.union[i].anak.indexOf(orangId) !== -1) return dok.union[i];
+    }
+    return null;
+  }
+  function unionMilik(dok, orangId) {
+    var h = [];
+    for (var i = 0; i < dok.union.length; i++) {
+      if (dok.union[i].a === orangId || dok.union[i].b === orangId) h.push(dok.union[i]);
+    }
+    return h;
+  }
+
+  /* ---------- Operasi penyuntingan ---------- */
+  function tambahOrang(dok, data) { var o = orangBaru(data); dok.orang.push(o); return o; }
+
+  function tambahPasangan(dok, orangId, data) {
+    var diri = cariOrang(dok, orangId);
+    if (!diri) return null;
+    var sudah = unionMilik(dok, orangId);
+    for (var i = 0; i < sudah.length; i++) { if (!sudah[i].a || !sudah[i].b) { /* slot kosong */ } }
+    var jk = data && data.jk ? data.jk : (diri.jk === 'L' ? 'P' : diri.jk === 'P' ? 'L' : 'U');
+    var pasangan = tambahOrang(dok, Object.assign({ jk: jk }, data || {}));
+    var u = unionBaru(orangId, pasangan.id);
+    dok.union.push(u);
+    return { orang: pasangan, union: u };
+  }
+
+  function tambahAnak(dok, unionId, data) {
+    var u = cariUnion(dok, unionId);
+    if (!u) return null;
+    var anak = tambahOrang(dok, data);
+    u.anak.push(anak.id);
+    return anak;
+  }
+
+  /* genogram tumbuh ke atas dari individu indeks menuju generasi
+     yang lebih tua. Fungsi ini memasang sepasang orang tua di atas seseorang. */
+  function tambahOrangTua(dok, orangId) {
+    var diri = cariOrang(dok, orangId);
+    if (!diri) return null;
+    if (unionOrtu(dok, orangId)) return null;   // sudah punya orang tua
+    var ayah = tambahOrang(dok, { jk: 'L' });
+    var ibu = tambahOrang(dok, { jk: 'P' });
+    var u = unionBaru(ayah.id, ibu.id);
+    u.anak.push(orangId);
+    dok.union.push(u);
+    return { ayah: ayah, ibu: ibu, union: u };
+  }
+
+  /* Menikahkan dua orang yang sudah ada (menautkan dua keluarga asal) */
+  function tautkanPasangan(dok, aId, bId) {
+    if (!aId || !bId || aId === bId) return null;
+    if (!cariOrang(dok, aId) || !cariOrang(dok, bId)) return null;
+    var ada = unionMilik(dok, aId);
+    for (var i = 0; i < ada.length; i++) {
+      if (ada[i].a === bId || ada[i].b === bId) return ada[i];
+    }
+    var u = unionBaru(aId, bId);
+    dok.union.push(u);
+    return u;
+  }
+
+  function hapusOrang(dok, orangId) {
+    var idx = -1;
+    for (var i = 0; i < dok.orang.length; i++) if (dok.orang[i].id === orangId) idx = i;
+    if (idx === -1) return false;
+    dok.orang.splice(idx, 1);
+    for (var j = dok.union.length - 1; j >= 0; j--) {
+      var u = dok.union[j];
+      if (u.a === orangId) u.a = null;
+      if (u.b === orangId) u.b = null;
+      var p = u.anak.indexOf(orangId);
+      if (p !== -1) u.anak.splice(p, 1);
+      if (!u.a && !u.b) {           // union tanpa pasangan -> anaknya jadi akar
+        dok.union.splice(j, 1);
+      }
+    }
+    return true;
+  }
+
+  function hapusUnion(dok, unionId) {
+    for (var i = 0; i < dok.union.length; i++) {
+      if (dok.union[i].id === unionId) { dok.union.splice(i, 1); return true; }
+    }
+    return false;
+  }
+
+  function tandaiIndeks(dok, orangId) {
+    for (var i = 0; i < dok.orang.length; i++) dok.orang[i].indeks = (dok.orang[i].id === orangId);
+  }
+
+  /* ---------- Generasi ---------- */
+  function hitungGenerasi(dok) {
+    var g = {}, i, j;
+    for (i = 0; i < dok.orang.length; i++) g[dok.orang[i].id] = 0;
+    var batas = dok.orang.length + 2, putaran = 0, berubah = true;
+    while (berubah && putaran < batas) {
+      berubah = false; putaran++;
+      for (i = 0; i < dok.union.length; i++) {
+        var u = dok.union[i];
+        var gu = 0;
+        if (u.a != null && g[u.a] != null) gu = Math.max(gu, g[u.a]);
+        if (u.b != null && g[u.b] != null) gu = Math.max(gu, g[u.b]);
+        if (u.a != null && g[u.a] != null && g[u.a] < gu) { g[u.a] = gu; berubah = true; }
+        if (u.b != null && g[u.b] != null && g[u.b] < gu) { g[u.b] = gu; berubah = true; }
+        for (j = 0; j < u.anak.length; j++) {
+          var c = u.anak[j];
+          if (g[c] != null && g[c] < gu + 1) { g[c] = gu + 1; berubah = true; }
+        }
+      }
+    }
+    return { gen: g, siklus: berubah };
+  }
+
+  /* ---------- Urutan anak (tertua di kiri) ---------- */
+  function anakTerurut(dok, u) {
+    var daftar = u.anak.slice();
+    if (!dok.meta.urutAnakOtomatis) return daftar;
+    var berumur = [], tanpa = [];
+    daftar.forEach(function (id) {
+      var o = cariOrang(dok, id);
+      var n = o && o.umur !== '' && o.umur != null ? parseFloat(o.umur) : NaN;
+      if (!isNaN(n)) berumur.push({ id: id, umur: n }); else tanpa.push(id);
+    });
+    berumur.sort(function (p, q) { return q.umur - p.umur; });   // tertua dulu
+    var hasil = berumur.map(function (e) { return e.id; }).concat(tanpa);
+    // kembar harus berdampingan
+    var keluar = [], sudah = {};
+    hasil.forEach(function (id) {
+      if (sudah[id]) return;
+      keluar.push(id); sudah[id] = true;
+      var o = cariOrang(dok, id);
+      if (o && o.kembarGrup) {
+        hasil.forEach(function (id2) {
+          if (sudah[id2]) return;
+          var o2 = cariOrang(dok, id2);
+          if (o2 && o2.kembarGrup === o.kembarGrup) { keluar.push(id2); sudah[id2] = true; }
+        });
+      }
+    });
+    return keluar;
+  }
+
+  /* laki-laki di kiri, perempuan di kanan */
+  function urutPasangan(dok, u) {
+    var a = u.a ? cariOrang(dok, u.a) : null;
+    var b = u.b ? cariOrang(dok, u.b) : null;
+    if (a && b && a.jk !== b.jk) {
+      if (b.jk === 'L' && a.jk !== 'L') return [u.b, u.a];
+      if (a.jk === 'P' && b.jk !== 'P') return [u.b, u.a];
+    }
+    return [u.a, u.b];
+  }
+
+  /* ---------- Urutan horizontal per generasi ---------- */
+  function urutkanHorizontal(dok, gen) {
+    var baris = {}, ditempatkan = {}, unionDikunjungi = {};
+    function barisDari(id) {
+      var g = gen[id] || 0;
+      if (!baris[g]) baris[g] = [];
+      return baris[g];
+    }
+    function tempat(id) {
+      if (!id || ditempatkan[id]) return;
+      barisDari(id).push(id); ditempatkan[id] = true;
+    }
+    function himpunanPasangan(id) {
+      var h = {};
+      unionMilik(dok, id).forEach(function (u) {
+        var lain = u.a === id ? u.b : u.a;
+        if (lain) h[lain] = true;
+      });
+      return h;
+    }
+    function pasanganTerpasang(id) {
+      var n = 0, h = himpunanPasangan(id);
+      for (var k in h) if (ditempatkan[k]) n++;
+      return n;
+    }
+    /* Sisipkan pasangan baru tepat di samping pasangan yang sudah ada, melompati
+       pasangan-pasangan lain dari orang yang sama, supaya garis relasi tidak
+       pernah melangkahi simbol orang ketiga. */
+    function sisipDekat(id, acuan, keKanan) {
+      if (!id || ditempatkan[id]) return;
+      var b = barisDari(id), i = b.indexOf(acuan);
+      if (i === -1) { tempat(id); return; }
+      var h = himpunanPasangan(acuan), j = i;
+      if (keKanan) {
+        while (j + 1 < b.length && h[b[j + 1]]) j++;
+        b.splice(j + 1, 0, id);
+      } else {
+        while (j - 1 >= 0 && h[b[j - 1]]) j--;
+        b.splice(j, 0, id);
+      }
+      ditempatkan[id] = true;
+    }
+    function kunjungiUnion(u) {
+      if (unionDikunjungi[u.id]) return;
+      unionDikunjungi[u.id] = true;
+      var ps = urutPasangan(dok, u), kiri = ps[0], kanan = ps[1];
+      if (kiri && kanan) {
+        if (ditempatkan[kiri] && !ditempatkan[kanan]) {
+          // pasangan pertama pada sisi baku, pasangan berikutnya berganti sisi
+          var n = pasanganTerpasang(kiri);
+          sisipDekat(kanan, kiri, n % 2 === 0);
+        } else if (ditempatkan[kanan] && !ditempatkan[kiri]) {
+          var m = pasanganTerpasang(kanan);
+          sisipDekat(kiri, kanan, m % 2 !== 0);
+        } else if (!ditempatkan[kiri] && !ditempatkan[kanan]) {
+          tempat(kiri); tempat(kanan);
+        }
+      } else { tempat(kiri); tempat(kanan); }
+      anakTerurut(dok, u).forEach(function (cid) {
+        tempat(cid);
+        unionMilik(dok, cid).forEach(kunjungiUnion);
+      });
+    }
+    var daftarUnion = dok.union.slice().sort(function (p, q) {
+      var gp = Math.max(p.a ? gen[p.a] : 0, p.b ? gen[p.b] : 0);
+      var gq = Math.max(q.a ? gen[q.a] : 0, q.b ? gen[q.b] : 0);
+      return gp - gq;
+    });
+    daftarUnion.forEach(kunjungiUnion);
+    dok.orang.forEach(function (o) { tempat(o.id); });
+    return baris;
+  }
+
+  /* ---------- Posisi X: relaksasi + penegakan jarak minimum ---------- */
+  function posisiX(dok, gen, baris) {
+    var x = {}, i, g, arr;
+    var pasanganDari = {};
+    dok.union.forEach(function (u) {
+      if (u.a && u.b) {
+        if (!pasanganDari[u.a]) pasanganDari[u.a] = {};
+        if (!pasanganDari[u.b]) pasanganDari[u.b] = {};
+        pasanganDari[u.a][u.b] = true; pasanganDari[u.b][u.a] = true;
+      }
+    });
+    function jarakMin(p, q) {
+      var pasangan = pasanganDari[p] && pasanganDari[p][q];
+      return S + (pasangan ? SELA_PASANGAN : SELA_LAIN);
+    }
+    var kunciGen = Object.keys(baris).map(Number).sort(function (a, b) { return a - b; });
+    kunciGen.forEach(function (k) {
+      baris[k].forEach(function (id, idx) { x[id] = idx * (S + SELA_LAIN); });
+    });
+
+    function rapikan(k) {
+      arr = baris[k]; if (!arr || arr.length < 2) return;
+      for (i = 1; i < arr.length; i++) {
+        var min = x[arr[i - 1]] + jarakMin(arr[i - 1], arr[i]);
+        if (x[arr[i]] < min) x[arr[i]] = min;
+      }
+      for (i = arr.length - 2; i >= 0; i--) {
+        var maks = x[arr[i + 1]] - jarakMin(arr[i], arr[i + 1]);
+        if (x[arr[i]] > maks) x[arr[i]] = maks;
+      }
+      for (i = 1; i < arr.length; i++) {
+        var min2 = x[arr[i - 1]] + jarakMin(arr[i - 1], arr[i]);
+        if (x[arr[i]] < min2) x[arr[i]] = min2;
+      }
+    }
+    function titikTurun(u) {
+      if (u.a && u.b) return (x[u.a] + x[u.b]) / 2;
+      return x[u.a || u.b];
+    }
+    function rerata(ids) {
+      var s = 0, n = 0;
+      ids.forEach(function (id) { if (x[id] != null) { s += x[id]; n++; } });
+      return n ? s / n : null;
+    }
+
+    for (var putaran = 0; putaran < 10; putaran++) {
+      var naik = putaran % 2 === 0;
+      var deret = naik ? kunciGen.slice().reverse() : kunciGen.slice();
+      deret.forEach(function (k) {
+        var geser = {};
+        (baris[k] || []).forEach(function (id) {
+          var target = [];
+          if (naik) {
+            unionMilik(dok, id).forEach(function (u) {
+              if (!u.anak.length) return;
+              var r = rerata(u.anak);
+              if (r != null) target.push(x[id] + (r - titikTurun(u)));
+            });
+          } else {
+            var pu = unionOrtu(dok, id);
+            if (pu) {
+              var t = titikTurun(pu), r2 = rerata(pu.anak);
+              if (r2 != null && t != null) target.push(x[id] + (t - r2));
+            }
+          }
+          if (target.length) {
+            var s = 0; target.forEach(function (v) { s += v; });
+            geser[id] = s / target.length;
+          }
+        });
+        for (var id2 in geser) x[id2] = geser[id2];
+        rapikan(k);
+      });
+    }
+    kunciGen.forEach(rapikan);
+
+    var minX = Infinity;
+    dok.orang.forEach(function (o) { if (x[o.id] != null && x[o.id] < minX) minX = x[o.id]; });
+    if (!isFinite(minX)) minX = 0;
+    var awal = TEPI + TALANG + SETENGAH;
+    dok.orang.forEach(function (o) { if (x[o.id] != null) x[o.id] = x[o.id] - minX + awal; });
+    return x;
+  }
+
+  /* Menyatukan beberapa kotak sejajar sumbu menjadi satu garis luar bergerigi,
+     sehingga batas rumah tangga hanya melingkupi anggota yang benar-benar
+     ditandai serumah dan melompati orang lain yang kebetulan berdekatan. */
+  function titikUnik(nilai) {
+    var h = nilai.slice().sort(function (a, b) { return a - b; }), k = [];
+    h.forEach(function (v) { if (!k.length || Math.abs(k[k.length - 1] - v) > 0.001) k.push(v); });
+    return k;
+  }
+  function garisLuar(kotak) {
+    if (!kotak.length) return '';
+    var xs = [], ys = [], i, j;
+    kotak.forEach(function (k) { xs.push(k.x1, k.x2); ys.push(k.y1, k.y2); });
+    xs = titikUnik(xs); ys = titikUnik(ys);
+    var nx = xs.length - 1, ny = ys.length - 1;
+    var isi = [];
+    for (i = 0; i < nx; i++) {
+      isi[i] = [];
+      for (j = 0; j < ny; j++) {
+        var cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2;
+        isi[i][j] = kotak.some(function (k) {
+          return cx > k.x1 && cx < k.x2 && cy > k.y1 && cy < k.y2;
+        });
+      }
+    }
+    function di(a, b) { return a >= 0 && a < nx && b >= 0 && b < ny && isi[a][b]; }
+    var sisi = [];
+    for (i = 0; i < nx; i++) {
+      for (j = 0; j < ny; j++) {
+        if (!isi[i][j]) continue;
+        var x0 = xs[i], x1 = xs[i + 1], y0 = ys[j], y1 = ys[j + 1];
+        if (!di(i, j - 1)) sisi.push([x0, y0, x1, y0]);
+        if (!di(i + 1, j)) sisi.push([x1, y0, x1, y1]);
+        if (!di(i, j + 1)) sisi.push([x1, y1, x0, y1]);
+        if (!di(i - 1, j)) sisi.push([x0, y1, x0, y0]);
+      }
+    }
+    var peta = {}, dipakai = {};
+    function kunci(a, b) { return Math.round(a * 100) + ':' + Math.round(b * 100); }
+    sisi.forEach(function (e, n) {
+      var k = kunci(e[0], e[1]);
+      (peta[k] = peta[k] || []).push(n);
+    });
+    var jalur = [];
+    for (var n = 0; n < sisi.length; n++) {
+      if (dipakai[n]) continue;
+      var titik = [[sisi[n][0], sisi[n][1]]], kini = n;
+      while (kini != null && !dipakai[kini]) {
+        dipakai[kini] = true;
+        var e = sisi[kini];
+        titik.push([e[2], e[3]]);
+        var calon = peta[kunci(e[2], e[3])] || [];
+        kini = null;
+        for (var c = 0; c < calon.length; c++) {
+          if (!dipakai[calon[c]]) { kini = calon[c]; break; }
+        }
+      }
+      // buang titik yang segaris supaya jalur ringkas
+      var ringkas = [];
+      titik.forEach(function (t) {
+        var m = ringkas.length;
+        if (m >= 2) {
+          var a = ringkas[m - 2], b = ringkas[m - 1];
+          var segarisX = Math.abs(a[0] - b[0]) < 0.01 && Math.abs(b[0] - t[0]) < 0.01;
+          var segarisY = Math.abs(a[1] - b[1]) < 0.01 && Math.abs(b[1] - t[1]) < 0.01;
+          if (segarisX || segarisY) { ringkas[m - 1] = t; return; }
+        }
+        ringkas.push(t);
+      });
+      if (ringkas.length > 2) {
+        jalur.push('M ' + ringkas.map(function (t) {
+          return Math.round(t[0] * 10) / 10 + ',' + Math.round(t[1] * 10) / 10;
+        }).join(' L ') + ' Z');
+      }
+    }
+    return jalur.join(' ');
+  }
+
+  /* Menyatukan kotak-kotak batas rumah tangga yang terputus menjadi satu
+     kesatuan. Kotak yang sudah bersinggungan dianggap satu komponen; komponen
+     yang terpisah dihubungkan koridor tipis di sepanjang pohon rentang minimum.
+     Rute koridor dipilih dari sejumlah calon dan dinilai lebih dulu: rute yang
+     tidak menyentuh simbol orang non-anggota selalu diutamakan, baru kemudian
+     rute terpendek. Nilai balik adalah kotak asli ditambah koridor, sehingga
+     garisLuar menghasilkan satu kurva utuh. */
+  function sambungRombongan(kotak, halangan) {
+    var n = kotak.length;
+    if (n < 2) return kotak.slice();
+    halangan = halangan || [];
+    var induk = [], i, j;
+    for (i = 0; i < n; i++) induk.push(i);
+    function cari(a) { while (induk[a] !== a) { induk[a] = induk[induk[a]]; a = induk[a]; } return a; }
+    function satukan(a, b) { induk[cari(a)] = cari(b); }
+    function bersinggungan(a, b) {
+      return (Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1)) > -0.5 &&
+             (Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1)) > -0.5;
+    }
+    for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) if (bersinggungan(kotak[i], kotak[j])) satukan(i, j);
+    var komp = {}, urut = [];
+    for (i = 0; i < n; i++) {
+      var r = cari(i);
+      if (!komp[r]) { komp[r] = []; urut.push(r); }
+      komp[r].push(i);
+    }
+    var hasil = kotak.slice();
+    if (urut.length < 2) return hasil;
+
+    var TKOR = 5;
+    function tabrakan(k) {
+      var c = 0;
+      for (var t = 0; t < halangan.length; t++) {
+        var h = halangan[t];
+        if (Math.min(k.x2, h.x2) - Math.max(k.x1, h.x1) > 0 &&
+            Math.min(k.y2, h.y2) - Math.max(k.y1, h.y1) > 0) c++;
+      }
+      return c;
+    }
+    function tegak(cx, ya, yb) {
+      return { x1: cx - TKOR / 2, x2: cx + TKOR / 2, y1: Math.min(ya, yb) - 1, y2: Math.max(ya, yb) + 1 };
+    }
+    function datar(xa, xb, cy) {
+      return { x1: Math.min(xa, xb) - TKOR / 2, x2: Math.max(xa, xb) + TKOR / 2,
+               y1: cy - TKOR / 2, y2: cy + TKOR / 2 };
+    }
+    function nilaiUnik(v) {
+      var s = v.slice().sort(function (a, b) { return a - b; }), k = [];
+      s.forEach(function (z) { if (!k.length || Math.abs(k[k.length - 1] - z) > 0.5) k.push(z); });
+      return k;
+    }
+    function koridor(a, b) {
+      var pax = [(a.x1 + a.x2) / 2, a.x1 + TKOR, a.x2 - TKOR];
+      var pbx = [(b.x1 + b.x2) / 2, b.x1 + TKOR, b.x2 - TKOR];
+      var ox = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
+      if (ox >= TKOR + 2) {
+        var cx = (Math.max(a.x1, b.x1) + Math.min(a.x2, b.x2)) / 2;
+        pax.push(cx); pbx.push(cx);
+      }
+      pax = nilaiUnik(pax); pbx = nilaiUnik(pbx);
+      var ay = (a.y1 + a.y2) / 2, by = (b.y1 + b.y2) / 2;
+      var kanal = [];
+      if (a.y2 <= b.y1) kanal.push((a.y2 + b.y1) / 2);
+      if (b.y2 <= a.y1) kanal.push((b.y2 + a.y1) / 2);
+      kanal.push(Math.min(a.y1, b.y1) - TKOR - 5);
+      kanal.push(Math.max(a.y2, b.y2) + TKOR + 5);
+      kanal.push(ay); kanal.push(by);
+      halangan.forEach(function (h) { kanal.push(h.y1 - TKOR - 3); kanal.push(h.y2 + TKOR + 3); });
+      kanal = nilaiUnik(kanal);
+      var terbaik = null;
+      for (var p = 0; p < pax.length; p++) {
+        for (var q = 0; q < pbx.length; q++) {
+          for (var c = 0; c < kanal.length; c++) {
+            var xa = pax[p], xb = pbx[q], cy = kanal[c];
+            var seg = [tegak(xa, ay, cy), datar(xa, xb, cy), tegak(xb, by, cy)];
+            var tbr = 0, pjg = 0, z;
+            for (z = 0; z < seg.length; z++) {
+              tbr += tabrakan(seg[z]);
+              pjg += (seg[z].x2 - seg[z].x1) + (seg[z].y2 - seg[z].y1);
+            }
+            if (!terbaik || tbr < terbaik.tbr || (tbr === terbaik.tbr && pjg < terbaik.pjg - 0.01)) {
+              terbaik = { tbr: tbr, pjg: pjg, seg: seg };
+            }
+          }
+        }
+      }
+      if (terbaik) terbaik.seg.forEach(function (s) { hasil.push(s); });
+    }
+    function jarakKotak(a, b) {
+      var dx = Math.max(0, Math.max(a.x1, b.x1) - Math.min(a.x2, b.x2));
+      var dy = Math.max(0, Math.max(a.y1, b.y1) - Math.min(a.y2, b.y2));
+      return dx + dy;
+    }
+    function pasanganTerdekat(ca, cb) {
+      var best = Infinity, pa = null, pb = null;
+      ca.forEach(function (ia) {
+        cb.forEach(function (ib) {
+          var dd = jarakKotak(kotak[ia], kotak[ib]);
+          if (dd < best) { best = dd; pa = kotak[ia]; pb = kotak[ib]; }
+        });
+      });
+      return { d: best, a: pa, b: pb };
+    }
+    var m = urut.length, dalam = [], u, v;
+    for (u = 0; u < m; u++) dalam.push(false);
+    dalam[0] = true;
+    var cnt = 1;
+    while (cnt < m) {
+      var bv = -1, bd = Infinity, bpa = null, bpb = null;
+      for (u = 0; u < m; u++) {
+        if (!dalam[u]) continue;
+        for (v = 0; v < m; v++) {
+          if (dalam[v]) continue;
+          var pr = pasanganTerdekat(komp[urut[u]], komp[urut[v]]);
+          if (pr.d < bd) { bd = pr.d; bv = v; bpa = pr.a; bpb = pr.b; }
+        }
+      }
+      if (bv < 0) break;
+      koridor(bpa, bpb);
+      dalam[bv] = true; cnt++;
+    }
+    return hasil;
+  }
+
+  /* Perencanaan jalur bus saudara.
+     Bus saudara milik dua union yang rentang mendatarnya bertumpang tidak boleh
+     berada pada ketinggian yang sama, sebab keduanya akan menyatu menjadi satu
+     garis panjang dan asal-usul anak tidak lagi terbaca. Rentang bus tiap union
+     diwarnai secara serakah ke beberapa jalur bertingkat: jalur 0 dipakai lebih
+     dulu, jalur berikutnya hanya dibuka bila memang bentrok. Union yang anaknya
+     tepat di bawah titik turun tidak memerlukan bus dan tidak ikut dijalurkan. */
+  function rencanaJalurBus(dok, gen, x) {
+    var perGen = {};
+    dok.union.forEach(function (u) {
+      var g = 0;
+      if (u.a) g = Math.max(g, gen[u.a] || 0);
+      if (u.b) g = Math.max(g, gen[u.b] || 0);
+      var ps = urutPasangan(dok, u), kiri = ps[0], kanan = ps[1], xTurun;
+      if (kiri && kanan && x[kiri] != null && x[kanan] != null) {
+        xTurun = (Math.min(x[kiri], x[kanan]) + SETENGAH + (Math.max(x[kiri], x[kanan]) - SETENGAH)) / 2;
+      } else {
+        var solo = kiri || kanan;
+        if (solo == null || x[solo] == null) return;
+        xTurun = x[solo];
+      }
+      var anak = anakTerurut(dok, u).filter(function (id) { return x[id] != null; });
+      if (!anak.length) return;
+      var grup = {}, titik = [];
+      anak.forEach(function (id) {
+        var o = cariOrang(dok, id);
+        var k = o && o.kembarGrup ? 'k:' + o.kembarGrup : 'x:' + id;
+        if (!grup[k]) { grup[k] = []; titik.push(k); }
+        grup[k].push(id);
+      });
+      var xc = titik.map(function (k) {
+        var s = 0;
+        grup[k].forEach(function (id) { s += x[id]; });
+        return s / grup[k].length;
+      });
+      var semua = xc.concat([xTurun]);
+      var lo = Math.min.apply(null, semua), hi = Math.max.apply(null, semua);
+      if (hi - lo <= 0.01) return;
+      if (!perGen[g]) perGen[g] = [];
+      perGen[g].push({ id: u.id, lo: lo, hi: hi });
+    });
+    var jalur = {}, jumlah = {};
+    Object.keys(perGen).forEach(function (g) {
+      var arr = perGen[g].slice().sort(function (a, b) {
+        if (a.lo !== b.lo) return a.lo - b.lo;
+        if (a.hi !== b.hi) return a.hi - b.hi;
+        return String(a.id) < String(b.id) ? -1 : 1;
+      });
+      var isi = [];
+      arr.forEach(function (it) {
+        /* Pada pewarnaan serakah, sebuah rentang paling banyak bentrok dengan
+           rentang yang sudah ditempatkan, sehingga jalur ke-n selalu tersedia
+           untuk rentang ke-n. Batas ini pasti cukup dan tidak pernah memaksa
+           dua bus berbagi jalur. */
+        var L = 0;
+        while (L < arr.length) {
+          var bentrok = false, daftar = isi[L] || [], i;
+          for (i = 0; i < daftar.length; i++) {
+            if (Math.min(daftar[i].hi, it.hi) - Math.max(daftar[i].lo, it.lo) > -SELA_JALUR) { bentrok = true; break; }
+          }
+          if (!bentrok) break;
+          L++;
+        }
+        if (!isi[L]) isi[L] = [];
+        isi[L].push(it);
+        jalur[it.id] = L;
+      });
+      jumlah[g] = isi.length;
+    });
+    return { jalur: jalur, jumlah: jumlah };
+  }
+
+  /* ---------- Tata letak lengkap ---------- */
+  function tataLetak(dok) {
+    var G = hitungGenerasi(dok);
+    var gen = G.gen;
+    var baris = urutkanHorizontal(dok, gen);
+    var x = posisiX(dok, gen, baris);
+    var kunciGen = Object.keys(baris).map(Number).sort(function (a, b) { return a - b; });
+
+    // Jalur bus saudara direncanakan lebih dulu: bila satu generasi memerlukan
+    // lebih dari satu jalur, jarak ke generasi berikutnya ditambah secukupnya
+    // sehingga jarak turun dari jalur terbawah ke baris anak tetap sama.
+    var rencana = rencanaJalurBus(dok, gen, x);
+    var yRow = [];
+    (function () {
+      var maks = kunciGen.length ? kunciGen[kunciGen.length - 1] : 0;
+      var yy = ATAS, g;
+      for (g = 0; g <= maks; g++) {
+        yRow[g] = yy;
+        yy += BARIS + Math.max(0, (rencana.jumlah[g] || 1) - 1) * JALUR_BUS;
+      }
+    })();
+    function yBaris(g) { return yRow[g] != null ? yRow[g] : ATAS + g * BARIS; }
+    var simbol = [], garis = [], tanda = [], teks = [];
+
+    dok.orang.forEach(function (o) {
+      var g = gen[o.id] || 0;
+      simbol.push({
+        id: o.id, x: x[o.id], y: yBaris(g), gen: g, orang: o,
+        adopsi: o.relOrtu === 'adopsi'
+      });
+    });
+
+    dok.union.forEach(function (u) {
+      var ps = urutPasangan(dok, u), kiri = ps[0], kanan = ps[1];
+      var gUnion = 0;
+      if (u.a) gUnion = Math.max(gUnion, gen[u.a] || 0);
+      if (u.b) gUnion = Math.max(gUnion, gen[u.b] || 0);
+      var yRel = yBaris(gUnion) + SETENGAH;
+      var xTurun;
+
+      if (kiri && kanan && x[kiri] != null && x[kanan] != null) {
+        var x1 = Math.min(x[kiri], x[kanan]) + SETENGAH;
+        var x2 = Math.max(x[kiri], x[kanan]) - SETENGAH;
+        var gaya = u.jenis === 'kohabitasi' ? 'putus' : 'penuh';
+        garis.push({ tipe: 'relasi', x1: x1, y1: yRel, x2: x2, y2: yRel, gaya: gaya, ganda: !!u.sedarah, union: u.id });
+        var tengah = (x1 + x2) / 2;
+        if (u.status === 'pisah') tanda.push({ tipe: 'miring', x: tengah, y: yRel, jumlah: 1 });
+        if (u.status === 'cerai') tanda.push({ tipe: 'miring', x: tengah, y: yRel, jumlah: 2 });
+        if (u.tahun) teks.push({ tipe: 'tahunNikah', x: tengah, y: yRel - 8, isi: (u.jenis === 'menikah' ? 'm. ' : 'k. ') + u.tahun });
+        xTurun = tengah;
+      } else {
+        var solo = kiri || kanan;
+        if (solo == null || x[solo] == null) return;
+        xTurun = x[solo];
+      }
+
+      var anak = anakTerurut(dok, u).filter(function (id) { return x[id] != null; });
+      if (!anak.length) return;
+      var yBus = yBaris(gUnion) + S + TURUN_BUS + (rencana.jalur[u.id] || 0) * JALUR_BUS;
+      var yMulai = (kiri && kanan) ? yRel : yBaris(gUnion) + S;
+      garis.push({ tipe: 'keturunan', x1: xTurun, y1: yMulai, x2: xTurun, y2: yBus, gaya: 'penuh', union: u.id });
+
+      // titik cabang tiap anak; kembar berbagi satu titik
+      var grup = {}, titik = [];
+      anak.forEach(function (id) {
+        var o = cariOrang(dok, id);
+        var kunci = o && o.kembarGrup ? 'k:' + o.kembarGrup : 'x:' + id;
+        if (!grup[kunci]) { grup[kunci] = []; titik.push(kunci); }
+        grup[kunci].push(id);
+      });
+      var xCabang = titik.map(function (kunci) {
+        var anggota = grup[kunci], s = 0;
+        anggota.forEach(function (id) { s += x[id]; });
+        return s / anggota.length;
+      });
+
+      // FIX bug aplikasi lama: bus saudara selalu mencakup titik turun induk
+      var minB = Math.min.apply(null, xCabang.concat([xTurun]));
+      var maksB = Math.max.apply(null, xCabang.concat([xTurun]));
+      if (maksB - minB > 0.01) {
+        garis.push({ tipe: 'saudara', x1: minB, y1: yBus, x2: maksB, y2: yBus, gaya: 'penuh', union: u.id });
+      }
+
+      titik.forEach(function (kunci, i) {
+        var anggota = grup[kunci];
+        var xc = xCabang[i];
+        var yAnak = yBaris(gUnion + 1);
+        if (anggota.length === 1) {
+          var o = cariOrang(dok, anggota[0]);
+          garis.push({
+            tipe: 'turun', x1: xc, y1: yBus, x2: x[anggota[0]], y2: yAnak, union: u.id,
+            gaya: o && o.relOrtu === 'adopsi' ? 'putus' : (o && o.relOrtu === 'asuh' ? 'titik' : 'penuh')
+          });
+        } else {
+          anggota.forEach(function (id) {
+            var oo = cariOrang(dok, id);
+            garis.push({
+              tipe: 'turun', x1: xc, y1: yBus, x2: x[id], y2: yAnak, union: u.id,
+              gaya: oo && oo.relOrtu === 'adopsi' ? 'putus' : (oo && oo.relOrtu === 'asuh' ? 'titik' : 'penuh')
+            });
+          });
+          var z = (cariOrang(dok, anggota[0]) || {}).zigositas;
+          if (z === 'MZ') {
+            var yBar = yBus + (yAnak - yBus) * 0.55;
+            var xs = anggota.map(function (id) { return x[id]; }).sort(function (a, b) { return a - b; });
+            var kiriBar = xc + (xs[0] - xc) * 0.55;
+            var kananBar = xc + (xs[xs.length - 1] - xc) * 0.55;
+            garis.push({ tipe: 'kembar', x1: kiriBar, y1: yBar, x2: kananBar, y2: yBar, gaya: 'penuh' });
+          } else if (z === '?') {
+            teks.push({ tipe: 'zigositas', x: xc, y: yBus + 18, isi: '?' });
+          }
+        }
+      });
+    });
+
+    /* Lompatan pada persilangan yang tidak terhindarkan.
+       Sebagian persilangan tidak dapat dihapus hanya dengan menaikkan jalur,
+       misalnya ketika titik turun satu union berada tepat di tengah rentang bus
+       union lain. Pada titik seperti itu bus diberi lengkung kecil sehingga
+       terlihat melompati garis tegak dan tidak terbaca sebagai sambungan. */
+    (function () {
+      var bus = [], tegak = [];
+      garis.forEach(function (z) {
+        if (z.tipe === 'saudara') bus.push(z);
+        else if (z.tipe === 'keturunan' || z.tipe === 'turun') tegak.push(z);
+      });
+      if (!bus.length || !tegak.length) return;
+      /* Penggal turun dari induk ke bus dan dari bus ke anak membentuk satu
+         garis lurus menerus bila absisnya sama. Keduanya digabung lebih dulu,
+         supaya persilangan yang jatuh tepat pada ketinggian bus union lain
+         tetap terbaca sebagai persilangan, bukan sebagai dua ujung yang bertemu. */
+      var ruas = [], peta = {};
+      tegak.forEach(function (v) {
+        var ya = Math.min(v.y1, v.y2), yb = Math.max(v.y1, v.y2);
+        if (Math.abs(v.x1 - v.x2) < 0.01) {
+          var k = String(v.union) + '@' + v.x1.toFixed(2);
+          if (peta[k]) {
+            peta[k].ya = Math.min(peta[k].ya, ya);
+            peta[k].yb = Math.max(peta[k].yb, yb);
+          } else {
+            peta[k] = { union: v.union, x1: v.x1, x2: v.x2, y1: v.y1, y2: v.y2, ya: ya, yb: yb, lurus: true };
+            ruas.push(peta[k]);
+          }
+        } else {
+          ruas.push({ union: v.union, x1: v.x1, x2: v.x2, y1: v.y1, y2: v.y2, ya: ya, yb: yb, lurus: false });
+        }
+      });
+      bus.forEach(function (b) {
+        var lo = Math.min(b.x1, b.x2), hi = Math.max(b.x1, b.x2), kena = [];
+        ruas.forEach(function (v) {
+          if (v.union === b.union) return;
+          if (v.yb - v.ya < 0.01) return;
+          if (b.y1 <= v.ya + 0.5 || b.y1 >= v.yb - 0.5) return;
+          var xp = v.lurus ? v.x1 : v.x1 + (v.x2 - v.x1) * ((b.y1 - v.y1) / (v.y2 - v.y1));
+          if (xp > lo + 3.5 && xp < hi - 3.5) kena.push(xp);
+        });
+        if (!kena.length) return;
+        kena.sort(function (p, q) { return p - q; });
+        /* Persilangan yang berdekatan digabung menjadi satu lompatan yang cukup
+           lebar untuk menaungi seluruhnya, supaya tidak ada busur yang bertindihan
+           dan tidak ada persilangan yang terlewat. Jari-jari dipangkas bila
+           lompatan akan melewati ujung bus. */
+        var RJ = 4.5, gugus = [[kena[0]]], i;
+        for (i = 1; i < kena.length; i++) {
+          if (kena[i] - gugus[gugus.length - 1][gugus[gugus.length - 1].length - 1] <= 2 * RJ + 1) {
+            gugus[gugus.length - 1].push(kena[i]);
+          } else gugus.push([kena[i]]);
+        }
+        var hasilLompat = [];
+        gugus.forEach(function (gg) {
+          var a = gg[0], z = gg[gg.length - 1];
+          var pusat = (a + z) / 2;
+          var jari = Math.max(RJ, (z - a) / 2 + 4);
+          jari = Math.min(jari, pusat - lo - 1.5, hi - pusat - 1.5);
+          if (jari >= 2) hasilLompat.push({ x: pusat, r: jari });
+        });
+        if (hasilLompat.length) b.lompat = hasilLompat;
+      });
+    })();
+
+    // batas rumah tangga
+    var anggotaRumah = dok.orang.filter(function (o) { return o.serumah && x[o.id] != null; });
+    var rumah = null;
+    if (anggotaRumah.length) {
+      var SELA_RUMAH = 18;
+      function bawahOrang(o, g) {
+        var b = yBaris(g) + S + 10;
+        if (o.nama) b += 16;
+        if ((o.thnLahir || o.thnMeninggal) && dok.meta.letakTahun !== 'samping') b += 13;
+        if (o.catatan) b += 13;
+        return b;
+      }
+      // satu kotak untuk tiap rombongan anggota serumah yang berdampingan pada
+      // satu generasi; orang yang tidak ditandai serumah memutus rombongan
+      var rombongan = [];
+      kunciGen.forEach(function (g) {
+        var deret = null;
+        (baris[g] || []).forEach(function (id) {
+          var o = cariOrang(dok, id);
+          if (o && o.serumah && x[id] != null) {
+            if (!deret) { deret = { gen: g, ids: [] }; rombongan.push(deret); }
+            deret.ids.push(id);
+          } else { deret = null; }
+        });
+      });
+      rombongan.forEach(function (r) {
+        var kiriR = Infinity, kananR = -Infinity, bawahR = -Infinity, atasR = Infinity;
+        r.ids.forEach(function (id) {
+          var o = cariOrang(dok, id);
+          kiriR = Math.min(kiriR, x[id] - SETENGAH);
+          kananR = Math.max(kananR, x[id] + SETENGAH);
+          atasR = Math.min(atasR, yBaris(r.gen) - ((o.kondisi && o.kondisi.length) ? 24 : 12));
+          bawahR = Math.max(bawahR, bawahOrang(o, r.gen));
+        });
+        r.x1 = kiriR - SELA_RUMAH; r.x2 = kananR + SELA_RUMAH;
+        r.y1 = atasR - SELA_RUMAH; r.y2 = bawahR + SELA_RUMAH;
+      });
+      // jembatan tegak antar generasi berdampingan yang rentangnya bertemu
+      var potongan = rombongan.map(function (r) { return { x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2 }; });
+      rombongan.forEach(function (a) {
+        rombongan.forEach(function (b) {
+          if (b.gen !== a.gen + 1) return;
+          var lo = Math.max(a.x1, b.x1), hi = Math.min(a.x2, b.x2);
+          if (hi - lo < 12) return;
+          potongan.push({ x1: lo, x2: hi, y1: Math.min(a.y2, b.y1) - 1, y2: Math.max(a.y2, b.y1) + 1 });
+        });
+      });
+      var bx1 = Infinity, by1 = Infinity, bx2 = -Infinity, by2 = -Infinity;
+      potongan.forEach(function (k) {
+        bx1 = Math.min(bx1, k.x1); by1 = Math.min(by1, k.y1);
+        bx2 = Math.max(bx2, k.x2); by2 = Math.max(by2, k.y2);
+      });
+      // Selama tidak ada orang luar yang ikut terkurung, batas digambar sebagai
+      // satu kotak sederhana seperti lazimnya. Bentuk berlekuk hanya dipakai
+      // bila memang diperlukan untuk mengeluarkan orang yang bukan anggota.
+      var adaPenyusup = dok.orang.some(function (o) {
+        if (o.serumah || x[o.id] == null) return false;
+        var cy = yBaris(gen[o.id] || 0) + SETENGAH;
+        return x[o.id] > bx1 && x[o.id] < bx2 && cy > by1 && cy < by2;
+      });
+      // Ketika batas berlekuk diperlukan (ada orang luar yang harus dikeluarkan),
+      // gabungan kotak bisa terputus bila anggota serumah berjauhan, sehingga
+      // garis-luar pecah menjadi beberapa kurva terpisah. Untuk mencegahnya,
+      // seluruh rombongan disatukan lebih dulu memakai koridor tipis yang
+      // dirutekan lewat celah antarbaris/kolom, agar batas tetap satu kesatuan
+      // tanpa ikut mengurung orang lain.
+      if (adaPenyusup) {
+        var halangan = [];
+        dok.orang.forEach(function (o) {
+          if (o.serumah || x[o.id] == null) return;
+          var g = gen[o.id] || 0;
+          halangan.push({
+            x1: x[o.id] - SETENGAH - 6, x2: x[o.id] + SETENGAH + 6,
+            y1: yBaris(g) - ((o.kondisi && o.kondisi.length) ? 24 : 12) - 4,
+            y2: bawahOrang(o, g) + 4
+          });
+        });
+        potongan = sambungRombongan(potongan, halangan);
+        var cx1 = Infinity, cy1 = Infinity, cx2 = -Infinity, cy2 = -Infinity;
+        potongan.forEach(function (k) {
+          cx1 = Math.min(cx1, k.x1); cy1 = Math.min(cy1, k.y1);
+          cx2 = Math.max(cx2, k.x2); cy2 = Math.max(cy2, k.y2);
+        });
+        bx1 = cx1; by1 = cy1; bx2 = cx2; by2 = cy2;
+      }
+      rumah = {
+        x: bx1, y: by1, w: bx2 - bx1, h: by2 - by1,
+        jumlah: anggotaRumah.length, kotak: potongan,
+        sederhana: !adaPenyusup,
+        jalur: adaPenyusup ? garisLuar(potongan) : ''
+      };
+    }
+
+    var maksX = TEPI + TALANG + 200;
+    dok.orang.forEach(function (o) { if (x[o.id] != null) maksX = Math.max(maksX, x[o.id] + SETENGAH); });
+    if (rumah) maksX = Math.max(maksX, rumah.x + rumah.w);
+    var maksGen = kunciGen.length ? kunciGen[kunciGen.length - 1] : 0;
+    var tinggiBagan = yBaris(maksGen) + S + 62;
+    if (rumah) tinggiBagan = Math.max(tinggiBagan, rumah.y + rumah.h + 24);
+
+    var generasi = kunciGen.map(function (g) {
+      return { gen: g, romawi: ROMAWI[g] || String(g + 1), y: yBaris(g) + SETENGAH };
+    });
+
+    /* Jaga jarak dari blok judul dan tanggal di bagian atas: bila unsur bagan
+       yang paling tinggi naik melewati batas, seluruh bagan digeser ke bawah. */
+    var BATAS_JUDUL = 64;
+    var puncak = Infinity;
+    simbol.forEach(function (sm) {
+      puncak = Math.min(puncak, sm.y - ((sm.orang.kondisi && sm.orang.kondisi.length) ? 22 : 6));
+    });
+    if (rumah) puncak = Math.min(puncak, rumah.y - 6);
+    // catatan: rumah.y sudah merupakan tepi tertinggi seluruh potongan
+    if (generasi.length) puncak = Math.min(puncak, generasi[0].y - 46);
+    var geser = isFinite(puncak) ? Math.max(0, BATAS_JUDUL - puncak) : 0;
+    if (geser > 0) {
+      simbol.forEach(function (z) { z.y += geser; });
+      garis.forEach(function (z) { z.y1 += geser; z.y2 += geser; });
+      tanda.forEach(function (z) { z.y += geser; });
+      teks.forEach(function (z) { z.y += geser; });
+      generasi.forEach(function (z) { z.y += geser; });
+      if (rumah) {
+        rumah.y += geser;
+        rumah.kotak.forEach(function (k) { k.y1 += geser; k.y2 += geser; });
+        if (!rumah.sederhana) rumah.jalur = garisLuar(rumah.kotak);
+      }
+      tinggiBagan += geser;
+    }
+
+    return {
+      simbol: simbol, garis: garis, tanda: tanda, teks: teks,
+      rumahTangga: rumah, generasi: generasi,
+      lebarBagan: maksX + TEPI, tinggiBagan: tinggiBagan,
+      siklus: G.siklus, gen: gen, x: x
+    };
+  }
+
+  /* Apakah sebuah titik berada di dalam batas rumah tangga yang tergambar */
+  function dalamRumah(rumah, px, py) {
+    if (!rumah) return false;
+    if (rumah.sederhana) {
+      return px > rumah.x && px < rumah.x + rumah.w && py > rumah.y && py < rumah.y + rumah.h;
+    }
+    return rumah.kotak.some(function (k) {
+      return px > k.x1 && px < k.x2 && py > k.y1 && py < k.y2;
+    });
+  }
+
+  /* ---------- Legenda ---------- */
+  function legendaDari(dok) {
+    var L = [], pakai = {}, i;
+    dok.orang.forEach(function (o) {
+      pakai['jk_' + o.jk] = true;
+      if (!o.hidup) pakai.mati = true;
+      if (o.indeks) pakai.indeks = true;
+      if (o.serumah) pakai.rumah = true;
+      var separuh = o.arsirZat || o.arsirBerat;
+      if (o.kondisi && o.kondisi.length && !separuh) pakai.arsir = true;
+      if (o.arsirZat) pakai.arsirZat = true;
+      if (o.arsirBerat) pakai.arsirBerat = true;
+      if (o.pembawaSifat) pakai.pembawa = true;
+      if (o.relOrtu === 'adopsi') pakai.adopsi = true;
+      if (o.relOrtu === 'asuh') pakai.asuh = true;
+      if (o.kembarGrup) pakai['kembar_' + (o.zigositas || '?')] = true;
+      if (o.kehamilan) pakai['hamil_' + o.kehamilan] = true;
+    });
+    dok.union.forEach(function (u) {
+      if (u.jenis === 'kohabitasi') pakai.kohabitasi = true; else if (u.a && u.b) pakai.nikah = true;
+      if (u.status === 'pisah') pakai.pisah = true;
+      if (u.status === 'cerai') pakai.cerai = true;
+      if (u.sedarah) pakai.sedarah = true;
+    });
+    var mode = dok.meta.mode;
+    if (pakai.jk_L) L.push({ ikon: 'kotak', arti: 'Laki-laki' });
+    if (pakai.jk_P) L.push({ ikon: 'lingkaran', arti: 'Perempuan' });
+    if (pakai.jk_U) L.push({ ikon: 'wajik', arti: mode === 'pedigree' ? 'Jenis kelamin tidak diketahui' : 'Gender non-biner atau tidak spesifik' });
+    if (pakai.mati) L.push({ ikon: mode === 'pedigree' ? 'diagonal' : 'silang', arti: 'Meninggal' });
+    if (pakai.indeks) L.push({ ikon: mode === 'pedigree' ? 'panah' : 'tepiGanda', arti: mode === 'pedigree' ? 'Proband (panah dan huruf P)' : 'Individu indeks (tepi ganda)' });
+    if (pakai.arsir) L.push({ ikon: 'arsir', arti: mode === 'pedigree' ? 'Terkena kondisi yang ditelaah' : 'Ada kondisi tercatat; kode ditulis di atas simbol' });
+    if (pakai.arsirBerat) L.push({ ikon: 'arsirKiri', arti: 'Arsiran separuh kiri = penyakit fisik atau mental berat' });
+    if (pakai.arsirZat) L.push({ ikon: 'arsirBawah', arti: 'Arsiran separuh bawah = penyalahgunaan zat atau alkohol' });
+    if (pakai.pembawa) L.push({ ikon: 'titikTengah', arti: 'Pembawa sifat (karier)' });
+    if (pakai.nikah) L.push({ ikon: 'garisPenuh', arti: 'Pernikahan' });
+    if (pakai.kohabitasi) L.push({ ikon: 'garisPutus', arti: 'Kohabitasi tanpa menikah' });
+    if (pakai.pisah) L.push({ ikon: 'satuMiring', arti: 'Berpisah (separasi)' });
+    if (pakai.cerai) L.push({ ikon: 'duaMiring', arti: 'Bercerai' });
+    if (pakai.sedarah) L.push({ ikon: 'garisGanda', arti: 'Perkawinan sedarah (konsanguinitas)' });
+    if (pakai.adopsi) L.push({ ikon: 'turunPutus', arti: 'Anak adopsi' });
+    if (pakai.asuh) L.push({ ikon: 'turunTitik', arti: 'Anak asuh' });
+    if (pakai.kembar_MZ) L.push({ ikon: 'kembarMZ', arti: 'Kembar monozigot' });
+    if (pakai.kembar_DZ) L.push({ ikon: 'kembarDZ', arti: 'Kembar dizigot' });
+    if (pakai['kembar_?']) L.push({ ikon: 'kembarTanya', arti: 'Kembar, zigositas belum diketahui' });
+    if (pakai.rumah) L.push({ ikon: 'kotakTitik', arti: 'Batas rumah tangga (anggota serumah)' });
+    KODE_KEHAMILAN.forEach(function (k) {
+      if (pakai['hamil_' + k.kode]) L.push({ ikon: 'teks:' + k.kode, arti: k.arti });
+    });
+    // kode kondisi yang benar-benar dipakai
+    var kode = {};
+    dok.orang.forEach(function (o) { (o.kondisi || []).forEach(function (k) { kode[k] = true; }); });
+    Object.keys(kode).sort().forEach(function (k) {
+      var bawaan = kodeBawaan(k);
+      var arti = bawaan ? bawaan.arti : artiKodeDari(dok, k);
+      L.push({ ikon: 'teks:' + k, arti: arti || 'Arti kode ini belum diisi' });
+    });
+    L.push({ ikon: 'umur', arti: 'Angka di dalam simbol = usia' });
+    return L;
+  }
+
+  /* ---------- Pemeriksaan mutu ---------- */
+  function periksa(dok) {
+    var pesan = [];
+    var G = hitungGenerasi(dok);
+    if (G.siklus) pesan.push({ level: 'galat', teks: 'Ada lingkaran hubungan orang tua-anak sehingga generasi tidak dapat dihitung.' });
+    var maks = 0;
+    dok.orang.forEach(function (o) { maks = Math.max(maks, G.gen[o.id] || 0); });
+    var jumlahGen = dok.orang.length ? maks + 1 : 0;
+    if (dok.orang.length && jumlahGen < 3) {
+      pesan.push({ level: 'ingat', teks: 'Baru ' + jumlahGen + ' generasi. Genogram sebaiknya mencakup sekurang-kurangnya tiga generasi.' });
+    }
+    if (!dok.orang.some(function (o) { return o.indeks; }) && dok.orang.length) {
+      pesan.push({ level: 'ingat', teks: 'Individu indeks belum ditandai.' });
+    }
+    if (!dok.meta.tanggal) pesan.push({ level: 'galat', teks: 'Tanggal pembuatan wajib dicantumkan.' });
+    var kodeKosong = kodeTambahan(dok).filter(function (k) { return !artiKodeDari(dok, k); });
+    if (kodeKosong.length) {
+      pesan.push({
+        level: 'ingat',
+        teks: 'Kode ' + kodeKosong.join(', ') + ' belum punya keterangan. Isi artinya pada kotak Arti kode tambahan di panel kiri agar legenda terbaca orang lain.'
+      });
+    }
+    dok.orang.forEach(function (o) {
+      if (o.kembarGrup && !o.zigositas) {
+        pesan.push({ level: 'ingat', teks: 'Kembar "' + (o.nama || o.id) + '" belum diberi keterangan zigositas.' });
+      }
+      if (!o.hidup && !o.thnMeninggal && !o.umur) {
+        pesan.push({ level: 'ingat', teks: 'Almarhum "' + (o.nama || 'tanpa nama') + '" belum diberi tahun atau umur saat meninggal.' });
+      }
+    });
+    var indeksBanyak = dok.orang.filter(function (o) { return o.indeks; }).length;
+    if (indeksBanyak > 1) pesan.push({ level: 'galat', teks: 'Individu indeks lebih dari satu; seharusnya hanya satu.' });
+    return pesan;
+  }
+
+  /* ---------- Penggambaran SVG ---------- */
+  function gayaGaris(g) {
+    if (g === 'putus') return ' stroke-dasharray="7 5"';
+    if (g === 'titik') return ' stroke-dasharray="2 4"';
+    return '';
+  }
+
+  function simbolPath(jk, cx, cy) {
+    var h = SETENGAH;
+    if (jk === 'P') return '<circle cx="' + cx + '" cy="' + cy + '" r="' + h + '"';
+    if (jk === 'U') {
+      return '<polygon points="' + cx + ',' + (cy - h) + ' ' + (cx + h) + ',' + cy + ' ' +
+        cx + ',' + (cy + h) + ' ' + (cx - h) + ',' + cy + '"';
+    }
+    return '<rect x="' + (cx - h) + '" y="' + (cy - h) + '" width="' + S + '" height="' + S + '"';
+  }
+  function simbolPathDalam(jk, cx, cy, d) {
+    var h = SETENGAH - d;
+    if (jk === 'P') return '<circle cx="' + cx + '" cy="' + cy + '" r="' + h + '"';
+    if (jk === 'U') {
+      return '<polygon points="' + cx + ',' + (cy - h) + ' ' + (cx + h) + ',' + cy + ' ' +
+        cx + ',' + (cy + h) + ' ' + (cx - h) + ',' + cy + '"';
+    }
+    return '<rect x="' + (cx - h) + '" y="' + (cy - h) + '" width="' + (h * 2) + '" height="' + (h * 2) + '"';
+  }
+
+  /* Tanda air pemilik naskah, diulang miring memenuhi bidang bagan sehingga
+     ikut terbawa pada ekspor PNG, SVG, maupun hasil cetak. */
+  var TANDA_AIR = 'Dr.dr.Tirta Darmawan Susanto,MKes, 2026';
+  function tandaAir(lebar, tinggi) {
+    var o = [], jarakX = 296, jarakY = 128, baris = 0, x, y;
+    for (y = -40; y < tinggi + 140; y += jarakY) {
+      var geser = (baris % 2) ? jarakX / 2 : 0;
+      for (x = -150 + geser; x < lebar + 180; x += jarakX) {
+        o.push('<text x="' + x + '" y="' + y + '" font-size="12.5" fill="#000" fill-opacity="0.085"' +
+          ' transform="rotate(-24 ' + x + ' ' + y + ')">' + amanXML(TANDA_AIR) + '</text>');
+      }
+      baris++;
+    }
+    return o.join('\n');
+  }
+
+  function gambarSVG(dok, tata, opsi) {
+    opsi = opsi || {};
+    var L = legendaDari(dok);
+    var adaArsirSeparuh = L.some(function (z) { return z.ikon === 'arsirKiri' || z.ikon === 'arsirBawah'; });
+    var kakiLegenda = ['Monokrom sesuai standar; warna bukan bagian standar.'];
+    if (adaArsirSeparuh) kakiLegenda.push('Letak arsiran berbeda antar sumber; yang berlaku adalah keterangan ini.');
+    var hurufTerpanjang = 0, kakiTerpanjang = 0;
+    L.forEach(function (z) { hurufTerpanjang = Math.max(hurufTerpanjang, String(z.arti).length); });
+    kakiLegenda.forEach(function (z) { kakiTerpanjang = Math.max(kakiTerpanjang, z.length); });
+    // kolom keterangan dimulai setelah lambang terlebar, termasuk kode teks
+    // yang panjang seperti Stroke atau Depresi, supaya tidak saling menempel
+    var kolomArti = 46;
+    L.forEach(function (z) {
+      if (String(z.ikon).indexOf('teks:') === 0) {
+        kolomArti = Math.max(kolomArti, 12 + (String(z.ikon).length - 5) * 6.9 + 9);
+      }
+    });
+    kolomArti = Math.ceil(kolomArti);
+    // lebar huruf rata-rata Helvetica: 0.52 em; ukuran isi 10.5 px, catatan kaki 9 px
+    var lebarLegenda = L.length ? Math.ceil(Math.max(268, hurufTerpanjang * 5.5 + kolomArti + 22, kakiTerpanjang * 4.8 + 34)) : 0;
+    var tinggiLegenda = L.length ? (54 + L.length * 20) : 0;
+    var lebar = Math.max(tata.lebarBagan + lebarLegenda + (lebarLegenda ? 28 : 0), 640);
+    var tinggi = Math.max(tata.tinggiBagan + 96, tinggiLegenda + 132 + kakiLegenda.length * 13);
+    var o = [];
+
+    o.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + Math.round(lebar) + '" height="' + Math.round(tinggi) +
+      '" viewBox="0 0 ' + Math.round(lebar) + ' ' + Math.round(tinggi) + '" font-family="Helvetica, Arial, sans-serif">');
+    /* Garis arsiran dibuat cukup renggang untuk menyatakan adanya kondisi tanpa
+       menutup angka usia. Potongan di tepi menjaga pola tetap tersambung. */
+    o.push('<defs><pattern id="arsir" width="14" height="14" patternUnits="userSpaceOnUse">' +
+      '<path d="M0,14 L14,0 M-3,3 L3,-3 M11,17 L17,11" stroke="#000" stroke-width="1.15" fill="none"/></pattern>' +
+      '<marker id="panahAkhir" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
+      '<path d="M 0 0 L 10 5 L 0 10 z" fill="#000"/></marker></defs>');
+    o.push('<rect width="100%" height="100%" fill="#ffffff"/>');
+    o.push(tandaAir(lebar, tinggi));
+
+    // judul dan tanggal
+    o.push('<text x="' + TEPI + '" y="30" font-size="17" font-weight="bold" fill="#000">' + amanXML(dok.meta.judul || 'Genogram Keluarga') + '</text>');
+    var sub = 'Dibuat ' + (dok.meta.tanggal || '-') + (dok.meta.penyusun ? ' \u00b7 ' + dok.meta.penyusun : '') +
+      ' \u00b7 notasi ' + (dok.meta.mode === 'pedigree' ? 'pedigree (NSGC)' : 'genogram (McGoldrick)');
+    o.push('<text x="' + TEPI + '" y="47" font-size="11" fill="#000">' + amanXML(sub) + '</text>');
+
+    // batas rumah tangga digambar paling belakang
+    if (tata.rumahTangga) {
+      var r = tata.rumahTangga;
+      if (r.sederhana) {
+        o.push('<rect x="' + r.x + '" y="' + r.y + '" width="' + r.w + '" height="' + r.h +
+          '" rx="14" fill="none" stroke="#000" stroke-width="1.4" stroke-dasharray="2 5"/>');
+      } else {
+        o.push('<path d="' + r.jalur + '" fill="none" stroke="#000" stroke-width="1.4" stroke-dasharray="2 5" stroke-linejoin="round"/>');
+      }
+    }
+
+    // talang generasi
+    tata.generasi.forEach(function (g) {
+      o.push('<text x="' + (TEPI + 6) + '" y="' + (g.y + 6) + '" font-size="15" font-weight="bold" fill="#000">' + g.romawi + '</text>');
+    });
+    if (tata.generasi.length) {
+      var yA = tata.generasi[0].y - 44, yB = tata.generasi[tata.generasi.length - 1].y + 44;
+      o.push('<line x1="' + (TEPI + TALANG - 12) + '" y1="' + yA + '" x2="' + (TEPI + TALANG - 12) + '" y2="' + yB + '" stroke="#000" stroke-width="0.8"/>');
+    }
+
+    // garis struktural
+    function jalurBusLompat(g) {
+      var kiri = Math.min(g.x1, g.x2), kanan = Math.max(g.x1, g.x2), y = g.y1;
+      var d = ['M ' + kiri.toFixed(2) + ' ' + y.toFixed(2)];
+      g.lompat.forEach(function (z) {
+        var a = z.x - z.r, b = z.x + z.r;
+        if (a <= kiri + 0.5 || b >= kanan - 0.5) return;
+        d.push('L ' + a.toFixed(2) + ' ' + y.toFixed(2));
+        d.push('A ' + z.r.toFixed(2) + ' ' + z.r.toFixed(2) + ' 0 0 1 ' + b.toFixed(2) + ' ' + y.toFixed(2));
+      });
+      d.push('L ' + kanan.toFixed(2) + ' ' + y.toFixed(2));
+      return d.join(' ');
+    }
+    tata.garis.forEach(function (g) {
+      if (g.tipe === 'saudara' && g.lompat && g.lompat.length) {
+        o.push('<path d="' + jalurBusLompat(g) + '" fill="none" stroke="#000" stroke-width="1.6"' + gayaGaris(g.gaya) + '/>');
+      } else if (g.tipe === 'relasi' && g.ganda) {   // konsanguinitas
+        o.push('<line x1="' + g.x1 + '" y1="' + (g.y1 - 3) + '" x2="' + g.x2 + '" y2="' + (g.y2 - 3) + '" stroke="#000" stroke-width="1.6"' + gayaGaris(g.gaya) + '/>');
+        o.push('<line x1="' + g.x1 + '" y1="' + (g.y1 + 3) + '" x2="' + g.x2 + '" y2="' + (g.y2 + 3) + '" stroke="#000" stroke-width="1.6"' + gayaGaris(g.gaya) + '/>');
+      } else {
+        o.push('<line x1="' + g.x1 + '" y1="' + g.y1 + '" x2="' + g.x2 + '" y2="' + g.y2 + '" stroke="#000" stroke-width="1.6"' + gayaGaris(g.gaya) + '/>');
+      }
+    });
+
+    // coretan status pasangan
+    tata.tanda.forEach(function (t) {
+      if (t.tipe !== 'miring') return;
+      var n = t.jumlah, i;
+      for (i = 0; i < n; i++) {
+        var dx = (n === 1 ? 0 : (i === 0 ? -6 : 6));
+        o.push('<line x1="' + (t.x + dx - 7) + '" y1="' + (t.y + 11) + '" x2="' + (t.x + dx + 7) + '" y2="' + (t.y - 11) + '" stroke="#000" stroke-width="1.8"/>');
+      }
+    });
+
+    tata.teks.forEach(function (t) {
+      o.push('<text x="' + t.x + '" y="' + t.y + '" font-size="10.5" text-anchor="middle" fill="#000">' + amanXML(t.isi) + '</text>');
+    });
+
+    // simbol individu
+    tata.simbol.forEach(function (s) {
+      var p = s.orang, cx = s.x, cy = s.y + SETENGAH;
+      // bila arsiran separuh dipakai, arsiran penuh dilepas agar
+      // letak arsiran tetap terbaca sebagai keterangan tersendiri
+      var adaSeparuh = !!(p.arsirZat || p.arsirBerat);
+      var isi = (p.kondisi && p.kondisi.length && !adaSeparuh) ? 'url(#arsir)' : '#ffffff';
+      if (dok.meta.mode === 'pedigree' && p.kondisi && p.kondisi.length && !adaSeparuh) isi = '#000000';
+
+      if (p.kehamilan) {          // segitiga
+        var h = SETENGAH;
+        o.push('<polygon points="' + cx + ',' + (cy - h) + ' ' + (cx + h) + ',' + (cy + h) + ' ' + (cx - h) + ',' + (cy + h) +
+          '" fill="' + isi + '" stroke="#000" stroke-width="1.8"/>');
+        o.push('<text x="' + cx + '" y="' + (cy + 14) + '" font-size="11" text-anchor="middle" fill="#000">' + amanXML(p.kehamilan) + '</text>');
+      } else {
+        o.push(simbolPath(p.jk, cx, cy) + ' fill="' + isi + '" stroke="#000" stroke-width="1.8"/>');
+        // arsiran sebagian simbol untuk kondisi psikososial
+        if (adaSeparuh) {
+          var kid = 'klip_' + String(p.id).replace(/[^A-Za-z0-9_-]/g, '');
+          o.push('<clipPath id="' + kid + '">' + simbolPath(p.jk, cx, cy) + ' /></clipPath>');
+          if (p.arsirBerat) {
+            o.push('<rect x="' + (cx - SETENGAH) + '" y="' + (cy - SETENGAH) + '" width="' + SETENGAH + '" height="' + S +
+              '" fill="url(#arsir)" clip-path="url(#' + kid + ')"/>');
+          }
+          if (p.arsirZat) {
+            o.push('<rect x="' + (cx - SETENGAH) + '" y="' + cy + '" width="' + S + '" height="' + SETENGAH +
+              '" fill="url(#arsir)" clip-path="url(#' + kid + ')"/>');
+          }
+          o.push(simbolPath(p.jk, cx, cy) + ' fill="none" stroke="#000" stroke-width="1.8"/>');
+        }
+        if (p.indeks && dok.meta.mode !== 'pedigree') {   // tepi ganda
+          o.push(simbolPathDalam(p.jk, cx, cy, 5) + ' fill="none" stroke="#000" stroke-width="1.4"/>');
+        }
+        if (p.pembawaSifat) o.push('<circle cx="' + cx + '" cy="' + cy + '" r="4.5" fill="#000"/>');
+      }
+
+      if (p.indeks && dok.meta.mode === 'pedigree') {     // panah proband
+        o.push('<line x1="' + (cx - SETENGAH - 26) + '" y1="' + (cy + SETENGAH + 22) + '" x2="' + (cx - SETENGAH - 6) + '" y2="' + (cy + SETENGAH + 4) +
+          '" stroke="#000" stroke-width="1.8" marker-end="url(#panahAkhir)"/>');
+        o.push('<text x="' + (cx - SETENGAH - 34) + '" y="' + (cy + SETENGAH + 30) + '" font-size="12" font-weight="bold" fill="#000">P</text>');
+      }
+
+      if (!p.hidup) {             // penanda meninggal
+        var d = SETENGAH + 4;
+        if (dok.meta.mode === 'pedigree') {
+          o.push('<line x1="' + (cx - d) + '" y1="' + (cy + d) + '" x2="' + (cx + d) + '" y2="' + (cy - d) + '" stroke="#000" stroke-width="1.8"/>');
+        } else {
+          o.push('<line x1="' + (cx - d) + '" y1="' + (cy - d) + '" x2="' + (cx + d) + '" y2="' + (cy + d) + '" stroke="#000" stroke-width="1.8"/>');
+          o.push('<line x1="' + (cx + d) + '" y1="' + (cy - d) + '" x2="' + (cx - d) + '" y2="' + (cy + d) + '" stroke="#000" stroke-width="1.8"/>');
+        }
+      }
+
+      if (dok.meta.mode === 'pedigree' && p.relOrtu === 'adopsi') {  // kurung siku
+        var b = SETENGAH + 7;
+        o.push('<path d="M ' + (cx - b) + ' ' + (cy - b) + ' l -6 0 l 0 ' + (2 * b) + ' l 6 0" fill="none" stroke="#000" stroke-width="1.4"/>');
+        o.push('<path d="M ' + (cx + b) + ' ' + (cy - b) + ' l 6 0 l 0 ' + (2 * b) + ' l -6 0" fill="none" stroke="#000" stroke-width="1.4"/>');
+      }
+
+      // usia di dalam simbol
+      if (p.umur !== '' && p.umur != null && !p.kehamilan) {
+        var warnaUmur = (dok.meta.mode === 'pedigree' && p.kondisi && p.kondisi.length && !adaSeparuh) ? '#ffffff' : '#000000';
+        var adaArsir = !!((p.kondisi && p.kondisi.length) || adaSeparuh);
+        var pelindungUmur = adaArsir
+          ? ' stroke="' + (warnaUmur === '#ffffff' ? '#000000' : '#ffffff') + '" stroke-width="3.2" paint-order="stroke fill" stroke-linejoin="round"'
+          : '';
+        o.push('<text x="' + cx + '" y="' + (cy + 5) + '" font-size="14" font-weight="bold" text-anchor="middle" fill="' + warnaUmur + '"' + pelindungUmur + '>' + amanXML(p.umur) + '</text>');
+      }
+      // kode kondisi di atas simbol; latar putih agar garis keturunan
+      // yang menuju simbol tidak memotong tulisan
+      if (p.kondisi && p.kondisi.length) {
+        var isiKode = potong(p.kondisi.join(', '), 16);
+        var lebarKode = isiKode.length * 6.4 + 8;
+        o.push('<rect x="' + (cx - lebarKode / 2) + '" y="' + (cy - SETENGAH - 20) + '" width="' + lebarKode + '" height="15" fill="#ffffff"/>');
+        o.push('<text x="' + cx + '" y="' + (cy - SETENGAH - 9) + '" font-size="11" font-weight="bold" text-anchor="middle" fill="#000">' +
+          amanXML(isiKode) + '</text>');
+      }
+      // tahun lahir dan meninggal
+      var thn = '';
+      if (p.thnLahir || p.thnMeninggal) thn = (p.thnLahir || '?') + '\u2013' + (p.thnMeninggal || (p.hidup ? '' : '?'));
+      var sampingi = thn && dok.meta.letakTahun === 'samping';
+      if (sampingi) {
+        o.push('<text x="' + (cx + SETENGAH + 5) + '" y="' + (cy + SETENGAH - 1) + '" font-size="9.5" text-anchor="start" fill="#000">' +
+          amanXML(thn) + '</text>');
+      }
+      // nama, lalu tahun (bila di bawah), lalu catatan — semuanya di bawah simbol
+      var barisBawah = [];
+      if (p.nama) barisBawah.push({ isi: potong(p.nama, 18), ukuran: '11.5', miring: '' });
+      if (thn && !sampingi) barisBawah.push({ isi: thn, ukuran: '10', miring: '' });
+      if (p.catatan) barisBawah.push({ isi: potong(batasKata(p.catatan, 15), 34), ukuran: '9.5', miring: ' font-style="italic"' });
+      barisBawah.forEach(function (b, i) {
+        o.push('<text x="' + cx + '" y="' + (cy + SETENGAH + 16 + i * 13) + '" font-size="' + b.ukuran + '"' + b.miring +
+          ' text-anchor="middle" fill="#000">' + amanXML(b.isi) + '</text>');
+      });
+    });
+
+    // legenda
+    if (L.length) {
+      var lx = tata.lebarBagan + 8, ly = 64;
+      o.push('<rect x="' + lx + '" y="' + ly + '" width="' + (lebarLegenda - 12) + '" height="' + tinggiLegenda + '" fill="none" stroke="#000" stroke-width="1"/>');
+      o.push('<text x="' + (lx + 12) + '" y="' + (ly + 22) + '" font-size="12.5" font-weight="bold" fill="#000">Legenda</text>');
+      L.forEach(function (item, i) {
+        var yy = ly + 42 + i * 20;
+        o.push(ikonLegenda(item.ikon, lx + 12, yy));
+        o.push('<text x="' + (lx + kolomArti) + '" y="' + (yy + 4) + '" font-size="10.5" fill="#000">' + amanXML(item.arti) + '</text>');
+      });
+      kakiLegenda.forEach(function (z, i) {
+        o.push('<text x="' + (lx + 12) + '" y="' + (ly + tinggiLegenda + 18 + i * 13) + '" font-size="9" fill="#000">' + amanXML(z) + '</text>');
+      });
+    }
+    o.push('</svg>');
+    return o.join('\n');
+  }
+
+  function ikonLegenda(ikon, x, y) {
+    var s = 13, g = '';
+    if (ikon === 'kotak') g = '<rect x="' + x + '" y="' + (y - s / 2) + '" width="' + s + '" height="' + s + '" fill="none" stroke="#000" stroke-width="1.4"/>';
+    else if (ikon === 'lingkaran') g = '<circle cx="' + (x + s / 2) + '" cy="' + y + '" r="' + (s / 2) + '" fill="none" stroke="#000" stroke-width="1.4"/>';
+    else if (ikon === 'wajik') g = '<polygon points="' + (x + s / 2) + ',' + (y - s / 2) + ' ' + (x + s) + ',' + y + ' ' + (x + s / 2) + ',' + (y + s / 2) + ' ' + x + ',' + y + '" fill="none" stroke="#000" stroke-width="1.4"/>';
+    else if (ikon === 'silang') g = '<rect x="' + x + '" y="' + (y - s / 2) + '" width="' + s + '" height="' + s + '" fill="none" stroke="#000" stroke-width="1.2"/>' +
+      '<line x1="' + x + '" y1="' + (y - s / 2) + '" x2="' + (x + s) + '" y2="' + (y + s / 2) + '" stroke="#000" stroke-width="1.2"/>' +
+      '<line x1="' + (x + s) + '" y1="' + (y - s / 2) + '" x2="' + x + '" y2="' + (y + s / 2) + '" stroke="#000" stroke-width="1.2"/>';
+    else if (ikon === 'diagonal') g = '<rect x="' + x + '" y="' + (y - s / 2) + '" width="' + s + '" height="' + s + '" fill="none" stroke="#000" stroke-width="1.2"/>' +
+      '<line x1="' + x + '" y1="' + (y + s / 2) + '" x2="' + (x + s) + '" y2="' + (y - s / 2) + '" stroke="#000" stroke-width="1.2"/>';
+    else if (ikon === 'tepiGanda') g = '<rect x="' + x + '" y="' + (y - s / 2) + '" width="' + s + '" height="' + s + '" fill="none" stroke="#000" stroke-width="1.2"/>' +
+      '<rect x="' + (x + 3) + '" y="' + (y - s / 2 + 3) + '" width="' + (s - 6) + '" height="' + (s - 6) + '" fill="none" stroke="#000" stroke-width="1"/>';
+    else if (ikon === 'panah') g = '<line x1="' + x + '" y1="' + (y + 5) + '" x2="' + (x + s) + '" y2="' + (y - 4) + '" stroke="#000" stroke-width="1.3" marker-end="url(#panahAkhir)"/>';
+    else if (ikon === 'arsir') g = '<rect x="' + x + '" y="' + (y - s / 2) + '" width="' + s + '" height="' + s + '" fill="url(#arsir)" stroke="#000" stroke-width="1.2"/>';
+    else if (ikon === 'arsirKiri') g = '<rect x="' + x + '" y="' + (y - s / 2) + '" width="' + (s / 2) + '" height="' + s + '" fill="url(#arsir)" stroke="none"/>' +
+      '<rect x="' + x + '" y="' + (y - s / 2) + '" width="' + s + '" height="' + s + '" fill="none" stroke="#000" stroke-width="1.2"/>';
+    else if (ikon === 'arsirBawah') g = '<rect x="' + x + '" y="' + y + '" width="' + s + '" height="' + (s / 2) + '" fill="url(#arsir)" stroke="none"/>' +
+      '<rect x="' + x + '" y="' + (y - s / 2) + '" width="' + s + '" height="' + s + '" fill="none" stroke="#000" stroke-width="1.2"/>';
+    else if (ikon === 'titikTengah') g = '<circle cx="' + (x + s / 2) + '" cy="' + y + '" r="' + (s / 2) + '" fill="none" stroke="#000" stroke-width="1.2"/><circle cx="' + (x + s / 2) + '" cy="' + y + '" r="2.4" fill="#000"/>';
+    else if (ikon === 'garisPenuh') g = '<line x1="' + x + '" y1="' + y + '" x2="' + (x + s + 6) + '" y2="' + y + '" stroke="#000" stroke-width="1.6"/>';
+    else if (ikon === 'garisPutus') g = '<line x1="' + x + '" y1="' + y + '" x2="' + (x + s + 6) + '" y2="' + y + '" stroke="#000" stroke-width="1.6" stroke-dasharray="5 4"/>';
+    else if (ikon === 'garisGanda') g = '<line x1="' + x + '" y1="' + (y - 2.5) + '" x2="' + (x + s + 6) + '" y2="' + (y - 2.5) + '" stroke="#000" stroke-width="1.3"/><line x1="' + x + '" y1="' + (y + 2.5) + '" x2="' + (x + s + 6) + '" y2="' + (y + 2.5) + '" stroke="#000" stroke-width="1.3"/>';
+    else if (ikon === 'satuMiring') g = '<line x1="' + x + '" y1="' + y + '" x2="' + (x + s + 6) + '" y2="' + y + '" stroke="#000" stroke-width="1.4"/><line x1="' + (x + s / 2) + '" y1="' + (y + 6) + '" x2="' + (x + s / 2 + 5) + '" y2="' + (y - 6) + '" stroke="#000" stroke-width="1.4"/>';
+    else if (ikon === 'duaMiring') g = '<line x1="' + x + '" y1="' + y + '" x2="' + (x + s + 6) + '" y2="' + y + '" stroke="#000" stroke-width="1.4"/>' +
+      '<line x1="' + (x + s / 2 - 3) + '" y1="' + (y + 6) + '" x2="' + (x + s / 2 + 2) + '" y2="' + (y - 6) + '" stroke="#000" stroke-width="1.4"/>' +
+      '<line x1="' + (x + s / 2 + 3) + '" y1="' + (y + 6) + '" x2="' + (x + s / 2 + 8) + '" y2="' + (y - 6) + '" stroke="#000" stroke-width="1.4"/>';
+    else if (ikon === 'turunPutus') g = '<line x1="' + (x + s / 2) + '" y1="' + (y - 7) + '" x2="' + (x + s / 2) + '" y2="' + (y + 7) + '" stroke="#000" stroke-width="1.5" stroke-dasharray="4 3"/>';
+    else if (ikon === 'turunTitik') g = '<line x1="' + (x + s / 2) + '" y1="' + (y - 7) + '" x2="' + (x + s / 2) + '" y2="' + (y + 7) + '" stroke="#000" stroke-width="1.5" stroke-dasharray="1.5 3"/>';
+    else if (ikon === 'kembarMZ') g = '<line x1="' + (x + s / 2) + '" y1="' + (y - 7) + '" x2="' + x + '" y2="' + (y + 7) + '" stroke="#000" stroke-width="1.3"/><line x1="' + (x + s / 2) + '" y1="' + (y - 7) + '" x2="' + (x + s) + '" y2="' + (y + 7) + '" stroke="#000" stroke-width="1.3"/><line x1="' + (x + 3) + '" y1="' + (y + 3) + '" x2="' + (x + s - 3) + '" y2="' + (y + 3) + '" stroke="#000" stroke-width="1.3"/>';
+    else if (ikon === 'kembarDZ') g = '<line x1="' + (x + s / 2) + '" y1="' + (y - 7) + '" x2="' + x + '" y2="' + (y + 7) + '" stroke="#000" stroke-width="1.3"/><line x1="' + (x + s / 2) + '" y1="' + (y - 7) + '" x2="' + (x + s) + '" y2="' + (y + 7) + '" stroke="#000" stroke-width="1.3"/>';
+    else if (ikon === 'kembarTanya') g = '<line x1="' + (x + s / 2) + '" y1="' + (y - 7) + '" x2="' + x + '" y2="' + (y + 7) + '" stroke="#000" stroke-width="1.3"/><line x1="' + (x + s / 2) + '" y1="' + (y - 7) + '" x2="' + (x + s) + '" y2="' + (y + 7) + '" stroke="#000" stroke-width="1.3"/><text x="' + (x + s / 2) + '" y="' + (y + 8) + '" font-size="10" text-anchor="middle" fill="#000">?</text>';
+    else if (ikon === 'kotakTitik') g = '<rect x="' + x + '" y="' + (y - s / 2) + '" width="' + (s + 4) + '" height="' + s + '" rx="3" fill="none" stroke="#000" stroke-width="1.2" stroke-dasharray="2 3"/>';
+    else if (ikon === 'umur') g = '<circle cx="' + (x + s / 2) + '" cy="' + y + '" r="' + (s / 2) + '" fill="none" stroke="#000" stroke-width="1.2"/><text x="' + (x + s / 2) + '" y="' + (y + 3.5) + '" font-size="8" text-anchor="middle" fill="#000">45</text>';
+    else if (ikon.indexOf('teks:') === 0) g = '<text x="' + x + '" y="' + (y + 4) + '" font-size="11" font-weight="bold" fill="#000">' + amanXML(ikon.slice(5)) + '</text>';
+    return g;
+  }
+
+  /* ---------- Contoh Gambar 16 buku (untuk uji dan demonstrasi) ---------- */
+  function contohBuku() {
+    var d = dokBaru('20 Agustus 2026');
+    d.meta.judul = 'Contoh genogram tiga generasi';
+    d.meta.penyusun = 'Contoh fiktif dari Gambar 16';
+    var kakekA = tambahOrang(d, { nama: 'Kakek (ayah)', jk: 'L', hidup: false, kondisi: ['CA'] });
+    var nenekA = tambahOrang(d, { nama: 'Nenek (ayah)', jk: 'P', umur: '74', kondisi: ['HT'] });
+    var u1 = unionBaru(kakekA.id, nenekA.id); d.union.push(u1);
+
+    var kakekB = tambahOrang(d, { nama: 'Kakek (ibu)', jk: 'L', umur: '70', kondisi: ['DM'] });
+    var nenekB = tambahOrang(d, { nama: 'Nenek (ibu)', jk: 'P', umur: '68' });
+    var u2 = unionBaru(kakekB.id, nenekB.id); u2.status = 'cerai'; d.union.push(u2);
+
+    var ayah = tambahAnak(d, u1.id, { nama: 'Ayah', jk: 'L', umur: '48', kondisi: ['HT'], indeks: true, serumah: true });
+    var ibu = tambahAnak(d, u2.id, { nama: 'Ibu', jk: 'P', umur: '45', serumah: true });
+    var u3 = tautkanPasangan(d, ayah.id, ibu.id); u3.tahun = '2004';
+
+    tambahAnak(d, u3.id, { nama: 'Anak 1', jk: 'L', umur: '17', serumah: true });
+    tambahAnak(d, u3.id, { nama: 'Anak 2', jk: 'P', umur: '12', serumah: true, kembarGrup: 'k1', zigositas: 'DZ' });
+    tambahAnak(d, u3.id, { nama: 'Anak 3', jk: 'L', umur: '12', serumah: true, kembarGrup: 'k1', zigositas: 'DZ' });
+    return d;
+  }
+
+  akar.GenogramInti = {
+    S: S, BARIS: BARIS, SETENGAH: SETENGAH, TEPI: TEPI, TALANG: TALANG,
+    SELA_PASANGAN: SELA_PASANGAN, SELA_LAIN: SELA_LAIN, ROMAWI: ROMAWI,
+    KODE_KONDISI: KODE_KONDISI, KODE_KEHAMILAN: KODE_KEHAMILAN,
+    hariIni: hariIni, salin: salin, batasKata: batasKata, amanXML: amanXML,
+    dokBaru: dokBaru, orangBaru: orangBaru, unionBaru: unionBaru,
+    cariOrang: cariOrang, cariUnion: cariUnion, unionOrtu: unionOrtu, unionMilik: unionMilik,
+    tambahOrang: tambahOrang, tambahPasangan: tambahPasangan, tambahAnak: tambahAnak,
+    tambahOrangTua: tambahOrangTua, tautkanPasangan: tautkanPasangan,
+    hapusOrang: hapusOrang, hapusUnion: hapusUnion, tandaiIndeks: tandaiIndeks,
+    hitungGenerasi: hitungGenerasi, anakTerurut: anakTerurut, urutPasangan: urutPasangan,
+    urutkanHorizontal: urutkanHorizontal, posisiX: posisiX, tataLetak: tataLetak,
+    legendaDari: legendaDari, periksa: periksa,
+    garisLuar: garisLuar, dalamRumah: dalamRumah, kodeTambahan: kodeTambahan, kodeBawaan: kodeBawaan, artiKodeDari: artiKodeDari, gambarSVG: gambarSVG,
+    contohBuku: contohBuku
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+/* Lapisan antarmuka aplikasi genogram. Logika bagan ada di GenogramInti. */
+(function () {
+  'use strict';
+  var G = window.GenogramInti;
+  var KUNCI = 'genogram-kedokteran-keluarga-v1';
+  var dok = null, terpilih = null, terpilihUnion = null;
+
+  /* ---------- Penyimpanan lokal dengan pemeriksaan bentuk ---------- */
+  function bentukSah(d) {
+    if (!d || typeof d !== 'object') return false;
+    if (!d.meta || typeof d.meta !== 'object') return false;
+    if (!Array.isArray(d.orang) || !Array.isArray(d.union)) return false;
+    var idOrang = Object.create(null), idUnion = Object.create(null), ortuDari = Object.create(null);
+    for (var i = 0; i < d.orang.length; i++) {
+      var o = d.orang[i];
+      if (!o || typeof o !== 'object' || typeof o.id !== 'string' || !o.id.trim() || idOrang[o.id]) return false;
+      idOrang[o.id] = true;
+    }
+    for (var j = 0; j < d.union.length; j++) {
+      var u = d.union[j];
+      if (!u || typeof u !== 'object' || !Array.isArray(u.anak)) return false;
+      if (u.id != null && (typeof u.id !== 'string' || !u.id.trim() || idUnion[u.id])) return false;
+      if (u.id != null) idUnion[u.id] = true;
+      if (u.a != null && typeof u.a !== 'string') return false;
+      if (u.b != null && typeof u.b !== 'string') return false;
+      if (u.a && u.b && u.a === u.b) return false;
+      var anakDiUnion = Object.create(null);
+      for (var k = 0; k < u.anak.length; k++) {
+        var anakId = u.anak[k];
+        if (typeof anakId !== 'string' || !anakId.trim() || anakDiUnion[anakId]) return false;
+        anakDiUnion[anakId] = true;
+        if (idOrang[anakId]) {
+          if (ortuDari[anakId]) return false;
+          ortuDari[anakId] = u.id || ('union-' + j);
+        }
+      }
+    }
+    return true;
+  }
+  function normalkan(d) {
+    var dasar = G.dokBaru();
+    d.meta = Object.assign({}, dasar.meta, d.meta || {});
+    d.orang = d.orang.map(function (o) {
+      var b = G.orangBaru();
+      for (var k in b) if (Object.prototype.hasOwnProperty.call(o, k)) b[k] = o[k];
+      b.id = o.id;
+      if (!Array.isArray(b.kondisi)) b.kondisi = [];
+      return b;
+    });
+    var ada = {}; d.orang.forEach(function (o) { ada[o.id] = true; });
+    d.union = d.union.filter(function (u) { return u && (u.a || u.b); }).map(function (u) {
+      var b = G.unionBaru(null, null);
+      for (var k in b) if (Object.prototype.hasOwnProperty.call(u, k)) b[k] = u[k];
+      b.id = u.id || b.id;
+      b.a = ada[u.a] ? u.a : null;
+      b.b = ada[u.b] ? u.b : null;
+      b.anak = (u.anak || []).filter(function (c) { return ada[c]; });
+      return b;
+    }).filter(function (u) { return u.a || u.b; });
+    return d;
+  }
+  function muat() {
+    try {
+      var mentah = localStorage.getItem(KUNCI);
+      if (!mentah) return G.dokBaru();
+      var d = JSON.parse(mentah);
+      if (!bentukSah(d)) return G.dokBaru();
+      d = normalkan(d);
+      if (G.hitungGenerasi(d).siklus) return G.dokBaru();
+      return d;
+    } catch (e) { return G.dokBaru(); }
+  }
+  function simpan() {
+    try { localStorage.setItem(KUNCI, JSON.stringify(dok)); } catch (e) { }
+  }
+
+  /* ---------- Pembantu DOM ---------- */
+  function el(id) { return document.getElementById(id); }
+  function buat(tag, kelas, isi) {
+    var n = document.createElement(tag);
+    if (kelas) n.className = kelas;
+    if (isi != null) n.textContent = isi;
+    return n;
+  }
+  function kabar(teks) {
+    var k = el('kabar'); k.textContent = teks; k.classList.add('tampil');
+    clearTimeout(kabar._t); kabar._t = setTimeout(function () { k.classList.remove('tampil'); }, 2600);
+  }
+
+  /* ---------- Gambar ---------- */
+  function segarkan(simpanJuga) {
+    if (simpanJuga !== false) simpan();
+    var tata = G.tataLetak(dok);
+    var svg = G.gambarSVG(dok, tata);
+    var wadah = el('bagan');
+    wadah.innerHTML = svg;
+    var node = wadah.querySelector('svg');
+    node.setAttribute('id', 'svgBagan');
+    // simpan ukuran asli untuk keperluan cetak
+    node.dataset.lebar = node.getAttribute('width');
+    node.dataset.tinggi = node.getAttribute('height');
+    pasangKlik(node, tata);
+    gambarPanel();
+    gambarPeriksa();
+  }
+
+  function pasangKlik(node, tata) {
+    tata.simbol.forEach(function (s) {
+      var h = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      h.setAttribute('x', s.x - G.SETENGAH - 6);
+      h.setAttribute('y', s.y - 6);
+      h.setAttribute('width', G.S + 12);
+      h.setAttribute('height', G.S + 12);
+      h.setAttribute('fill', 'transparent');
+      h.setAttribute('class', 'sasaran' + (terpilih === s.id ? ' aktif' : ''));
+      h.setAttribute('tabindex', '0');
+      h.setAttribute('role', 'button');
+      var o = s.orang;
+      h.setAttribute('aria-label', 'Sunting ' + (o.nama || 'anggota tanpa nama'));
+      h.addEventListener('click', function () { pilih(s.id); });
+      h.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pilih(s.id); }
+      });
+      node.appendChild(h);
+    });
+    tata.garis.filter(function (g) { return g.tipe === 'relasi'; }).forEach(function (g) {
+      var h = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      h.setAttribute('x', Math.min(g.x1, g.x2));
+      h.setAttribute('y', g.y1 - 10);
+      h.setAttribute('width', Math.max(6, Math.abs(g.x2 - g.x1)));
+      h.setAttribute('height', 20);
+      h.setAttribute('fill', 'transparent');
+      h.setAttribute('class', 'sasaran' + (terpilihUnion === g.union ? ' aktif' : ''));
+      h.setAttribute('tabindex', '0');
+      h.setAttribute('role', 'button');
+      h.setAttribute('aria-label', 'Sunting hubungan pasangan');
+      h.addEventListener('click', function () { pilihUnion(g.union); });
+      h.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pilihUnion(g.union); }
+      });
+      node.appendChild(h);
+    });
+  }
+
+  function pilih(id) { terpilih = id; terpilihUnion = null; segarkan(false); }
+  function pilihUnion(id) { terpilihUnion = id; terpilih = null; segarkan(false); }
+
+  /* ---------- Panel penyuntingan ---------- */
+  function baris(label, kontrol) {
+    var b = buat('div', 'baris');
+    var l = buat('label', 'label', label);
+    b.appendChild(l); b.appendChild(kontrol);
+    return b;
+  }
+  function teksInput(nilai, saatUbah, tipe) {
+    var i = document.createElement('input');
+    i.type = tipe || 'text'; i.value = nilai == null ? '' : nilai;
+    i.addEventListener('change', function () { saatUbah(i.value); });
+    return i;
+  }
+  function pilihan(daftar, nilai, saatUbah) {
+    var s = document.createElement('select');
+    daftar.forEach(function (d) {
+      var op = document.createElement('option');
+      op.value = d[0]; op.textContent = d[1];
+      if (d[0] === nilai) op.selected = true;
+      s.appendChild(op);
+    });
+    s.addEventListener('change', function () { saatUbah(s.value); });
+    return s;
+  }
+  function centang(nilai, saatUbah, teks) {
+    var w = buat('label', 'centang');
+    var i = document.createElement('input');
+    i.type = 'checkbox'; i.checked = !!nilai;
+    i.addEventListener('change', function () { saatUbah(i.checked); });
+    w.appendChild(i); w.appendChild(document.createTextNode(' ' + teks));
+    return w;
+  }
+  function tombol(teks, saatKlik, kelas) {
+    var b = buat('button', 'tbl ' + (kelas || ''), teks);
+    b.type = 'button';
+    b.addEventListener('click', saatKlik);
+    return b;
+  }
+
+  function gambarPanel() {
+    var p = el('panel'); p.innerHTML = '';
+
+    /* --- metadata dokumen --- */
+    var kotakMeta = buat('section', 'kotak');
+    kotakMeta.appendChild(buat('h2', '', 'Keterangan bagan'));
+    kotakMeta.appendChild(baris('Judul', teksInput(dok.meta.judul, function (v) { dok.meta.judul = v; segarkan(); })));
+    kotakMeta.appendChild(baris('Penyusun', teksInput(dok.meta.penyusun, function (v) { dok.meta.penyusun = v; segarkan(); })));
+    kotakMeta.appendChild(baris('Tanggal', teksInput(dok.meta.tanggal, function (v) { dok.meta.tanggal = v; segarkan(); })));
+    kotakMeta.appendChild(baris('Notasi', pilihan([['genogram', 'Genogram (McGoldrick)'], ['pedigree', 'Pedigree medis (NSGC)']],
+      dok.meta.mode, function (v) { dok.meta.mode = v; segarkan(); })));
+    kotakMeta.appendChild(baris('Letak tahun', pilihan([['bawah', 'Di bawah nama'], ['samping', 'Di sisi kanan simbol']],
+      dok.meta.letakTahun, function (v) { dok.meta.letakTahun = v; segarkan(); })));
+    kotakMeta.appendChild(centang(dok.meta.urutAnakOtomatis, function (v) { dok.meta.urutAnakOtomatis = v; segarkan(); },
+      'Urutkan anak menurut usia, tertua di kiri'));
+    p.appendChild(kotakMeta);
+
+    /* --- daftar anggota --- */
+    var kotakDaftar = buat('section', 'kotak');
+    kotakDaftar.appendChild(buat('h2', '', 'Anggota keluarga'));
+    if (!dok.orang.length) {
+      var kosong = buat('p', 'sunyi', 'Belum ada anggota. Mulai dari pasien yang Anda hadapi, lalu tambahkan orang tua ke atas dan anak ke bawah hingga tiga generasi.');
+      kotakDaftar.appendChild(kosong);
+      kotakDaftar.appendChild(tombol('Tambah orang pertama', function () {
+        var o = G.tambahOrang(dok, { nama: '', jk: 'L', indeks: true });
+        terpilih = o.id; segarkan();
+      }, 'utama'));
+    } else {
+      var sel = document.createElement('select');
+      sel.className = 'daftarOrang';
+      var kosongOp = document.createElement('option');
+      kosongOp.value = ''; kosongOp.textContent = '— pilih anggota —';
+      sel.appendChild(kosongOp);
+      var gen = G.hitungGenerasi(dok).gen;
+      dok.orang.slice().sort(function (a, b) { return (gen[a.id] || 0) - (gen[b.id] || 0); }).forEach(function (o) {
+        var op = document.createElement('option');
+        op.value = o.id;
+        op.textContent = (G.ROMAWI[gen[o.id] || 0] || '') + ' \u00b7 ' + (o.nama || '(tanpa nama)') +
+          (o.indeks ? ' \u2014 indeks' : '');
+        if (o.id === terpilih) op.selected = true;
+        sel.appendChild(op);
+      });
+      sel.addEventListener('change', function () { if (sel.value) pilih(sel.value); });
+      kotakDaftar.appendChild(sel);
+      var aksi = buat('div', 'aksi');
+      aksi.appendChild(tombol('Tambah orang lepas', function () {
+        var o = G.tambahOrang(dok, { nama: '', jk: 'L' }); terpilih = o.id; segarkan();
+      }));
+      kotakDaftar.appendChild(aksi);
+    }
+    p.appendChild(kotakDaftar);
+
+    panelArtiKode(p);
+
+    if (terpilihUnion) { panelUnion(p); }
+    else if (terpilih) { panelOrang(p); }
+
+    /* --- catatan etik --- */
+    var etik = buat('section', 'kotak catatan');
+    etik.appendChild(buat('h2', '', 'Kerahasiaan'));
+    etik.appendChild(buat('p', '', 'Bagan ini memuat data kesehatan pasien sekaligus keluarganya. Data disimpan hanya di peramban perangkat ini dan tidak dikirim ke mana pun. Batasi penggunaannya sebatas keperluan perawatan.'));
+    etik.appendChild(buat('p', 'kecil', 'Lapisan hubungan emosional tidak digambar di sini. Lapisan itu ditangani aplikasi terpisah, Family Map, yang dibatasi pada anggota serumah.'));
+    p.appendChild(etik);
+  }
+
+  /* Kode di luar daftar bawaan perlu keterangan, jika tidak legenda hanya
+     memuat singkatannya saja dan tak terbaca pembaca lain. */
+  function panelArtiKode(p) {
+    var kode = G.kodeTambahan(dok);
+    if (!kode.length) return;
+    if (!dok.meta.artiKode) dok.meta.artiKode = {};
+    var k = buat('section', 'kotak');
+    k.appendChild(buat('h2', '', 'Arti kode tambahan'));
+    k.appendChild(buat('p', 'sunyi', 'Kode berikut Anda tulis sendiri. Isi artinya di sini, dan tulisan itulah yang muncul pada legenda bagan.'));
+    kode.forEach(function (kk) {
+      var isian = teksInput(dok.meta.artiKode[kk] || '', function (v) {
+        dok.meta.artiKode[kk] = v.trim();
+        segarkan();
+      });
+      isian.placeholder = 'mis. pembesaran prostat jinak';
+      k.appendChild(baris(kk, isian));
+    });
+    p.appendChild(k);
+  }
+
+  function panelOrang(p) {
+    var o = G.cariOrang(dok, terpilih);
+    if (!o) { terpilih = null; return; }
+    var k = buat('section', 'kotak sorot');
+    k.appendChild(buat('h2', '', 'Sunting: ' + (o.nama || 'tanpa nama')));
+
+    k.appendChild(baris('Nama', teksInput(o.nama, function (v) { o.nama = v; segarkan(); })));
+    k.appendChild(baris('Jenis kelamin', pilihan([['L', 'Laki-laki (kotak)'], ['P', 'Perempuan (lingkaran)'], ['U', 'Non-biner / tidak diketahui (wajik)']],
+      o.jk, function (v) { o.jk = v; segarkan(); })));
+    k.appendChild(baris('Usia', teksInput(o.umur, function (v) { o.umur = v; segarkan(); })));
+    var thn = buat('div', 'duaKolom');
+    thn.appendChild(teksInput(o.thnLahir, function (v) { o.thnLahir = v; segarkan(); }));
+    thn.appendChild(teksInput(o.thnMeninggal, function (v) { o.thnMeninggal = v; segarkan(); }));
+    thn.children[0].placeholder = 'Tahun lahir'; thn.children[1].placeholder = 'Tahun meninggal';
+    k.appendChild(baris('Tahun', thn));
+
+    k.appendChild(centang(!o.hidup, function (v) { o.hidup = !v; segarkan(); },
+      dok.meta.mode === 'pedigree' ? 'Meninggal (garis diagonal)' : 'Meninggal (tanda silang)'));
+    k.appendChild(centang(o.indeks, function (v) {
+      if (v) G.tandaiIndeks(dok, o.id); else o.indeks = false;
+      segarkan();
+    }, dok.meta.mode === 'pedigree' ? 'Proband (panah dan huruf P)' : 'Individu indeks (tepi ganda)'));
+    k.appendChild(centang(o.serumah, function (v) { o.serumah = v; segarkan(); }, 'Tinggal serumah'));
+
+    /* kondisi medis — */
+    var kotakKondisi = buat('div', 'pilKondisi');
+    G.KODE_KONDISI.forEach(function (kk) {
+      var w = buat('label', 'chip');
+      var i = document.createElement('input');
+      i.type = 'checkbox';
+      i.checked = o.kondisi.indexOf(kk.kode) !== -1;
+      i.addEventListener('change', function () {
+        var idx = o.kondisi.indexOf(kk.kode);
+        if (i.checked && idx === -1) o.kondisi.push(kk.kode);
+        if (!i.checked && idx !== -1) o.kondisi.splice(idx, 1);
+        segarkan();
+      });
+      w.appendChild(i); w.appendChild(document.createTextNode(kk.kode));
+      w.title = kk.arti;
+      kotakKondisi.appendChild(w);
+    });
+    k.appendChild(baris('Kondisi', kotakKondisi));
+    var lain = o.kondisi.filter(function (c) {
+      return !G.KODE_KONDISI.some(function (t) { return t.kode === c; });
+    }).join(', ');
+    var inpLain = teksInput(lain, function (v) {
+      var baku = o.kondisi.filter(function (c) { return G.KODE_KONDISI.some(function (t) { return t.kode === c; }); });
+      var tambahan = v.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      o.kondisi = baku.concat(tambahan);
+      segarkan();
+    });
+    inpLain.placeholder = 'mis. CA mammae, Epilepsi';
+    k.appendChild(baris('Kode lain', inpLain));
+    if (dok.meta.mode === 'pedigree') {
+      k.appendChild(centang(o.pembawaSifat, function (v) { o.pembawaSifat = v; segarkan(); }, 'Pembawa sifat (titik di tengah)'));
+    }
+    k.appendChild(centang(o.arsirZat, function (v) { o.arsirZat = v; segarkan(); },
+      'Penyalahgunaan zat atau alkohol (arsir separuh bawah)'));
+    k.appendChild(centang(o.arsirBerat, function (v) { o.arsirBerat = v; segarkan(); },
+      'Penyakit fisik atau mental berat (arsir separuh kiri)'));
+
+    k.appendChild(baris('Hubungan ke orang tua', pilihan(
+      [['kandung', 'Anak kandung (garis penuh)'], ['adopsi', 'Anak adopsi (garis putus-putus)'], ['asuh', 'Anak asuh (garis titik-titik)']],
+      o.relOrtu, function (v) { o.relOrtu = v; segarkan(); })));
+
+    var kembar = buat('div', 'duaKolom');
+    var inpGrup = teksInput(o.kembarGrup, function (v) { o.kembarGrup = v.trim(); segarkan(); });
+    inpGrup.placeholder = 'Nama grup kembar';
+    kembar.appendChild(inpGrup);
+    kembar.appendChild(pilihan([['', 'Zigositas'], ['MZ', 'Monozigot'], ['DZ', 'Dizigot'], ['?', 'Belum diketahui']],
+      o.zigositas, function (v) { o.zigositas = v; segarkan(); }));
+    k.appendChild(baris('Kembar', kembar));
+
+    var hamil = [['', 'Bukan penanda kehamilan']];
+    G.KODE_KEHAMILAN.forEach(function (h) { hamil.push([h.kode, h.kode + ' \u2014 ' + h.arti]); });
+    k.appendChild(baris('Kehamilan', pilihan(hamil, o.kehamilan, function (v) { o.kehamilan = v; segarkan(); })));
+
+    var cat = teksInput(o.catatan, function (v) { o.catatan = G.batasKata(v, 15); segarkan(); });
+    cat.placeholder = 'Maksimal 15 kata';
+    k.appendChild(baris('Catatan', cat));
+
+    /* aksi struktural */
+    var aksi = buat('div', 'aksi');
+    aksi.appendChild(tombol('+ Pasangan', function () {
+      var r = G.tambahPasangan(dok, o.id, {});
+      terpilih = r.orang.id; segarkan();
+    }, 'utama'));
+    var punyaUnion = G.unionMilik(dok, o.id);
+    aksi.appendChild(tombol('+ Anak', function () {
+      var u = punyaUnion[0];
+      if (!u) { u = G.unionBaru(o.id, null); dok.union.push(u); }
+      else if (punyaUnion.length > 1) {
+        // lebih dari satu pernikahan: tanyakan anak ini dari pasangan yang mana
+        var daftar = punyaUnion.map(function (z, i) {
+          var lain = z.a === o.id ? z.b : z.a;
+          var n = lain ? (G.cariOrang(dok, lain) || {}).nama : null;
+          return (i + 1) + '. ' + (n || '(tanpa pasangan)');
+        }).join('\n');
+        var jwb = parseInt(prompt('Anak ini dari pasangan yang mana?\n\n' + daftar), 10);
+        if (!jwb || jwb < 1 || jwb > punyaUnion.length) return;
+        u = punyaUnion[jwb - 1];
+      }
+      var a = G.tambahAnak(dok, u.id, {});
+      terpilih = a.id; segarkan();
+    }, 'utama'));
+    if (!G.unionOrtu(dok, o.id)) {
+      aksi.appendChild(tombol('+ Orang tua', function () {
+        var r = G.tambahOrangTua(dok, o.id);
+        if (r) { terpilih = r.ayah.id; segarkan(); }
+      }));
+    }
+    aksi.appendChild(tombol('Tautkan ke anggota lain', function () { bukaTautan(o); }));
+    aksi.appendChild(tombol('Hapus', function () {
+      if (!confirm('Hapus "' + (o.nama || 'anggota ini') + '"? Anaknya tidak ikut terhapus, tetapi kehilangan tautan ke orang tua.')) return;
+      G.hapusOrang(dok, o.id); terpilih = null; segarkan(); kabar('Anggota dihapus.');
+    }, 'bahaya'));
+    k.appendChild(aksi);
+    p.appendChild(k);
+  }
+
+  function bukaTautan(o) {
+    var lain = dok.orang.filter(function (z) { return z.id !== o.id; });
+    if (!lain.length) { kabar('Belum ada anggota lain untuk ditautkan.'); return; }
+    var daftar = lain.map(function (z, i) { return (i + 1) + '. ' + (z.nama || '(tanpa nama)'); }).join('\n');
+    var jwb = prompt('Tautkan "' + (o.nama || 'anggota ini') + '" sebagai pasangan dari nomor berapa?\n\n' + daftar);
+    var n = parseInt(jwb, 10);
+    if (!n || n < 1 || n > lain.length) return;
+    var u = G.tautkanPasangan(dok, o.id, lain[n - 1].id);
+    if (u) { terpilihUnion = u.id; terpilih = null; segarkan(); kabar('Pasangan ditautkan.'); }
+  }
+
+  function panelUnion(p) {
+    var u = G.cariUnion(dok, terpilihUnion);
+    if (!u) { terpilihUnion = null; return; }
+    var a = u.a ? G.cariOrang(dok, u.a) : null, b = u.b ? G.cariOrang(dok, u.b) : null;
+    var k = buat('section', 'kotak sorot');
+    k.appendChild(buat('h2', '', 'Hubungan: ' + ((a && a.nama) || '?') + ' \u2014 ' + ((b && b.nama) || '?')));
+    k.appendChild(baris('Bentuk', pilihan([['menikah', 'Menikah (garis penuh)'], ['kohabitasi', 'Kohabitasi (garis putus-putus)']],
+      u.jenis, function (v) { u.jenis = v; segarkan(); })));
+    k.appendChild(baris('Status', pilihan([['utuh', 'Berlangsung'], ['pisah', 'Berpisah (satu garis miring)'], ['cerai', 'Bercerai (dua garis miring)']],
+      u.status, function (v) { u.status = v; segarkan(); })));
+    var t = teksInput(u.tahun, function (v) { u.tahun = v; segarkan(); });
+    t.placeholder = 'mis. 2004';
+    k.appendChild(baris('Tahun', t));
+    k.appendChild(centang(u.sedarah, function (v) { u.sedarah = v; segarkan(); }, 'Perkawinan sedarah (garis mendatar ganda)'));
+    var aksi = buat('div', 'aksi');
+    aksi.appendChild(tombol('+ Anak dari pasangan ini', function () {
+      var c = G.tambahAnak(dok, u.id, {});
+      terpilih = c.id; terpilihUnion = null; segarkan();
+    }, 'utama'));
+    aksi.appendChild(tombol('Putuskan tautan', function () {
+      if (!confirm('Hapus hubungan pasangan ini? Anak-anaknya akan kehilangan tautan ke orang tua.')) return;
+      G.hapusUnion(dok, u.id); terpilihUnion = null; segarkan();
+    }, 'bahaya'));
+    k.appendChild(aksi);
+    p.appendChild(k);
+  }
+
+  /* ---------- Pemeriksaan mutu ---------- */
+  function gambarPeriksa() {
+    var w = el('periksa'); w.innerHTML = '';
+    var pesan = G.periksa(dok);
+    if (!pesan.length) {
+      w.appendChild(buat('p', 'lolos', 'Pemeriksaan mutu bersih: struktur, legenda, dan tanggal sudah lengkap.'));
+      return;
+    }
+    var ul = buat('ul', '');
+    pesan.forEach(function (m) {
+      var li = buat('li', m.level === 'galat' ? 'galat' : 'ingat', m.teks);
+      ul.appendChild(li);
+    });
+    w.appendChild(ul);
+  }
+
+  /* ---------- Ekspor ---------- */
+  function svgTeks() {
+    var node = el('bagan').querySelector('svg').cloneNode(true);
+    Array.prototype.slice.call(node.querySelectorAll('.sasaran')).forEach(function (n) { n.parentNode.removeChild(n); });
+    node.setAttribute('width', node.dataset.lebar);
+    node.setAttribute('height', node.dataset.tinggi);
+    return new XMLSerializer().serializeToString(node);
+  }
+  function namaBerkas(ext) {
+    var j = (dok.meta.judul || 'genogram').replace(/[^\w\u00C0-\u024F -]+/g, '').trim().replace(/\s+/g, '-').toLowerCase();
+    return (j || 'genogram') + '.' + ext;
+  }
+  function unduh(blob, nama) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = nama;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+  }
+  function simpanPNG(format) {
+    var jpeg = format === 'jpeg', ekstensi = jpeg ? 'jpg' : 'png', label = jpeg ? 'JPEG' : 'PNG';
+    var teks = svgTeks();
+    var node = el('bagan').querySelector('svg');
+    var w = parseInt(node.dataset.lebar, 10), h = parseInt(node.dataset.tinggi, 10);
+    /* Resolusi mengikuti ukuran bagan. Bagan lebar, misalnya keluarga besar empat
+       generasi, akan diperkecil banyak ketika dimasukkan ke lebar halaman dokumen;
+       tanpa penyesuaian, huruf pecah dan tidak terbaca. Skala paling rendah tiga
+       kali, dinaikkan sampai lebar keluaran memenuhi sasaran, lalu dibatasi agar
+       tidak melampaui kemampuan kanvas peramban. Bila peramban tetap menolak,
+       skala diturunkan bertahap sampai berkas berhasil dibuat. */
+    var LEBAR_SASARAN = 6000, SKALA_MIN = 3, SKALA_MAKS = 8;
+    var SISI_MAKS = 16384, PIKSEL_MAKS = 3.2e7;
+    var batas = Math.min(SISI_MAKS / Math.max(1, w), SISI_MAKS / Math.max(1, h),
+      Math.sqrt(PIKSEL_MAKS / Math.max(1, w * h)));
+    var skala = Math.min(SKALA_MAKS, Math.max(SKALA_MIN, Math.ceil(LEBAR_SASARAN / Math.max(1, w))));
+    if (skala > batas) skala = Math.max(0.2, Math.floor(batas * 20) / 20);
+    var tangga = [skala];
+    [0.7, 0.5, 0.34].forEach(function (f) {
+      var s = Math.max(0.2, Math.round(skala * f * 20) / 20);
+      if (s < tangga[tangga.length - 1] - 0.01) tangga.push(s);
+    });
+    var img = new Image();
+    img.onload = function () {
+      (function coba(i) {
+        if (i >= tangga.length) { kabar('Peramban menolak membuat berkas gambar. Pakai tombol SVG.'); return; }
+        var s = tangga[i];
+        var c = document.createElement('canvas');
+        c.width = Math.round(w * s); c.height = Math.round(h * s);
+        var g2 = c.getContext('2d');
+        if (!g2 || !c.width || !c.height) { coba(i + 1); return; }
+        g2.fillStyle = '#ffffff'; g2.fillRect(0, 0, c.width, c.height);
+        g2.drawImage(img, 0, 0, c.width, c.height);
+        try {
+          c.toBlob(function (blob) {
+            if (!blob) { coba(i + 1); return; }
+            unduh(blob, namaBerkas(ekstensi));
+            kabar(s < 2
+              ? 'Gambar ' + label + ' tersimpan, ' + c.width + ' x ' + c.height + ' piksel. Bagan sangat lebar; untuk hasil paling tajam pakai tombol SVG.'
+              : 'Gambar ' + label + ' tersimpan, ' + c.width + ' x ' + c.height + ' piksel (skala ' + s + ' kali).');
+          }, jpeg ? 'image/jpeg' : 'image/png', jpeg ? 0.94 : undefined);
+        } catch (e) { coba(i + 1); }
+      })(0);
+    };
+    img.onerror = function () { kabar('Gagal mengubah bagan menjadi gambar.'); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(teks);
+  }
+  function simpanSVG() {
+    unduh(new Blob([svgTeks()], { type: 'image/svg+xml' }), namaBerkas('svg'));
+    kabar('Berkas SVG tersimpan.');
+  }
+  function simpanJSON() {
+    unduh(new Blob([JSON.stringify(dok, null, 2)], { type: 'application/json' }), namaBerkas('json'));
+    kabar('Data JSON tersimpan. Berkas ini juga bisa dibuka di Family Map.');
+  }
+  function bukaJSON(berkas) {
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var d = JSON.parse(r.result);
+        if (!bentukSah(d)) { kabar('Berkas tidak berisi data genogram yang sah.'); return; }
+        d = normalkan(d);
+        if (G.hitungGenerasi(d).siklus) {
+          kabar('Berkas berisi lingkaran hubungan orang tua-anak dan tidak dimuat.');
+          return;
+        }
+        dok = d; terpilih = null; terpilihUnion = null; segarkan();
+        kabar('Data dimuat.');
+      } catch (e) { kabar('Berkas gagal dibaca: ' + e.message); }
+    };
+    r.readAsText(berkas);
+  }
+
+  /* Cetak: SVG diperkecil lewat atribut width/height sehingga kotak tata letak
+     ikut mengecil dan tidak menimbulkan halaman kosong. */
+  function siapCetak() {
+    var node = el('bagan').querySelector('svg');
+    if (!node) return;
+    var w = parseInt(node.dataset.lebar, 10), h = parseInt(node.dataset.tinggi, 10);
+    var lebarKertas = (297 - 20) * 96 / 25.4;
+    var tinggiKertas = (210 - 20) * 96 / 25.4;
+    var s = Math.min(lebarKertas / w, tinggiKertas / h, 1);
+    node.setAttribute('width', Math.floor(w * s));
+    node.setAttribute('height', Math.floor(h * s));
+  }
+  function usaiCetak() {
+    var node = el('bagan').querySelector('svg');
+    if (!node) return;
+    node.setAttribute('width', node.dataset.lebar);
+    node.setAttribute('height', node.dataset.tinggi);
+  }
+
+  /* ---------- Pasang ---------- */
+  function mulai() {
+    dok = muat();
+    el('tblContoh').addEventListener('click', function () {
+      if (dok.orang.length && !confirm('Ganti isi bagan dengan contoh tiga generasi dari buku?')) return;
+      dok = G.contohBuku(); terpilih = null; terpilihUnion = null; segarkan();
+      kabar('Contoh Gambar 16 dimuat.');
+    });
+    el('tblPNG').addEventListener('click', simpanPNG);
+    el('tblJPEG').addEventListener('click', function () { simpanPNG('jpeg'); });
+    el('tblSVG').addEventListener('click', simpanSVG);
+    el('tblPDF').addEventListener('click', function () { window.print(); });
+    el('tblJSON').addEventListener('click', simpanJSON);
+    el('inpJSON').addEventListener('change', function (e) {
+      if (e.target.files && e.target.files[0]) bukaJSON(e.target.files[0]);
+      e.target.value = '';
+    });
+    el('tblReset').addEventListener('click', function () {
+      if (!confirm('Kosongkan seluruh bagan? Tindakan ini tidak dapat dibatalkan.')) return;
+      dok = G.dokBaru(); terpilih = null; terpilihUnion = null; segarkan();
+      kabar('Bagan dikosongkan.');
+    });
+    window.addEventListener('beforeprint', siapCetak);
+    window.addEventListener('afterprint', usaiCetak);
+    segarkan(false);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mulai);
+  else mulai();
+})();
+
+</script>
+</body>
+</html>
